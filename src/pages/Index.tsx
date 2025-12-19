@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { ResumePreviewToggle } from "@/components/ResumePreviewToggle";
@@ -13,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
+import { FloatingParticles } from "@/components/animations/FloatingParticles";
 import { Save, Sparkles, Zap, Target, FileText, TrendingUp } from "lucide-react";
 
 interface AnalyticsData {
@@ -227,72 +230,82 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Greeting */}
-        <Greeting />
-        
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary mb-4">
-            <Zap className="h-3.5 w-3.5" />
-            AI-Powered Resume Optimization
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Land Your Dream Job
-          </h1>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm md:text-base">
-            Paste a job description and let AI optimize your resume for maximum ATS compatibility
-          </p>
-        </div>
+      <PageTransition>
+        <div className="max-w-7xl mx-auto px-4 py-6 relative">
+          {/* Floating particles background */}
+          <FloatingParticles count={8} />
+          
+          {/* Greeting */}
+          <Greeting />
+          
+          {/* Hero Section */}
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="text-center mb-8"
+          >
+            <motion.div 
+              variants={fadeInUp}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary mb-4"
+            >
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                <Zap className="h-3.5 w-3.5" />
+              </motion.div>
+              AI-Powered Resume Optimization
+            </motion.div>
+            <motion.h1 
+              variants={fadeInUp}
+              className="text-3xl md:text-4xl font-bold text-foreground mb-3"
+            >
+              Land Your Dream Job
+            </motion.h1>
+            <motion.p 
+              variants={fadeInUp}
+              className="text-muted-foreground max-w-xl mx-auto text-sm md:text-base"
+            >
+              Paste a job description and let AI optimize your resume for maximum ATS compatibility
+            </motion.p>
+          </motion.div>
 
-        {/* Features Pills */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border text-xs">
-            <Target className="h-3.5 w-3.5 text-primary" />
-            ATS Optimized
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border text-xs">
-            <TrendingUp className="h-3.5 w-3.5 text-[hsl(var(--success))]" />
-            Real-time Analytics
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border text-xs">
-            <FileText className="h-3.5 w-3.5 text-accent" />
-            PDF Export
-          </div>
-        </div>
+          {/* Features Pills */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap justify-center gap-2 mb-8"
+          >
+            {[
+              { icon: Target, label: "ATS Optimized", color: "text-primary" },
+              { icon: TrendingUp, label: "Real-time Analytics", color: "text-[hsl(var(--success))]" },
+              { icon: FileText, label: "PDF Export", color: "text-accent" },
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.label}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-card rounded-full border border-border text-xs cursor-default"
+              >
+                <feature.icon className={`h-3.5 w-3.5 ${feature.color}`} />
+                {feature.label}
+              </motion.div>
+            ))}
+          </motion.div>
 
-        {/* Main content */}
-        {!hasGenerated ? (
-          // Initial state - just job description panel centered
-          <div className="max-w-2xl mx-auto">
-            <JobDescriptionPanel
-              value={jobDescription}
-              onChange={setJobDescription}
-              onGenerate={handleGenerate}
-              onClear={handleClear}
-              isGenerating={isGenerating}
-              status={status}
-              downloadUrl={downloadUrl}
-            />
-            
-            {/* Quick tips */}
-            <Card className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/10">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Pro Tip</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Paste the complete job description including requirements and responsibilities for best ATS optimization results. The AI will tailor your resume with relevant keywords.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        ) : (
-          // After generation - full layout with preview and analytics
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Job Description - Narrower on large screens */}
-            <div className="lg:col-span-4">
+          {/* Main content */}
+          {!hasGenerated ? (
+            // Initial state - just job description panel centered
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="max-w-2xl mx-auto"
+            >
               <JobDescriptionPanel
                 value={jobDescription}
                 onChange={setJobDescription}
@@ -302,38 +315,109 @@ const Index = () => {
                 status={status}
                 downloadUrl={downloadUrl}
               />
-            </div>
-            
-            {/* Preview Toggle - Main area */}
-            <div className="lg:col-span-5 space-y-4">
-              <ResumePreviewToggle 
-                latexCode={latexCode}
-                pdfBase64={pdfBase64}
-                isLoading={isConvertingPdf}
-              />
               
-              {latexCode && (
-                <Button 
-                  onClick={handleSaveResume} 
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  <Save className="h-4 w-4" />
-                  {user ? "Save Resume" : "Sign in to Save"}
-                </Button>
-              )}
-            </div>
+              {/* Quick tips */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                whileHover={{ scale: 1.01 }}
+              >
+                <Card className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/10">
+                  <div className="flex items-start gap-3">
+                    <motion.div
+                      animate={{ 
+                        rotate: [0, 15, -15, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    >
+                      <Sparkles className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    </motion.div>
+                    <div>
+                      <h4 className="font-semibold text-sm mb-1">Pro Tip</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Paste the complete job description including requirements and responsibilities for best ATS optimization results. The AI will tailor your resume with relevant keywords.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            </motion.div>
+          ) : (
+            // After generation - full layout with preview and analytics
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-4"
+            >
+              {/* Job Description - Narrower on large screens */}
+              <motion.div 
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="lg:col-span-4"
+              >
+                <JobDescriptionPanel
+                  value={jobDescription}
+                  onChange={setJobDescription}
+                  onGenerate={handleGenerate}
+                  onClear={handleClear}
+                  isGenerating={isGenerating}
+                  status={status}
+                  downloadUrl={downloadUrl}
+                />
+              </motion.div>
+              
+              {/* Preview Toggle - Main area */}
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="lg:col-span-5 space-y-4"
+              >
+                <ResumePreviewToggle 
+                  latexCode={latexCode}
+                  pdfBase64={pdfBase64}
+                  isLoading={isConvertingPdf}
+                />
+                
+                {latexCode && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button 
+                      onClick={handleSaveResume} 
+                      className="w-full gap-2"
+                      size="lg"
+                    >
+                      <Save className="h-4 w-4" />
+                      {user ? "Save Resume" : "Sign in to Save"}
+                    </Button>
+                  </motion.div>
+                )}
+              </motion.div>
 
-            {/* Analytics Panel */}
-            <div className="lg:col-span-3">
-              <ResumeAnalytics 
-                analytics={analytics}
-                isLoading={isAnalyzing}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+              {/* Analytics Panel */}
+              <motion.div 
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="lg:col-span-3"
+              >
+                <ResumeAnalytics 
+                  analytics={analytics}
+                  isLoading={isAnalyzing}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </PageTransition>
     </AppLayout>
   );
 };

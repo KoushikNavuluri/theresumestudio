@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
 import { 
   User, 
   Mail, 
@@ -110,128 +112,175 @@ export default function Profile() {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="text-center pt-4">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4 shadow-lg">
-            <User className="w-10 h-10 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-          <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
-        </div>
+      <PageTransition>
+        <motion.div 
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          className="max-w-lg mx-auto px-4 py-6 space-y-6"
+        >
+          {/* Header */}
+          <motion.div variants={fadeInUp} className="text-center pt-4">
+            <motion.div 
+              className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4 shadow-lg"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <User className="w-10 h-10 text-primary-foreground" />
+            </motion.div>
+            <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+            <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
+          </motion.div>
 
-        {/* Account Card */}
-        <Card className="bg-card/80 backdrop-blur-sm border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              Account
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {user ? (
-              <>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Email</Label>
-                  <p className="text-sm font-medium">{user.email}</p>
+          {/* Account Card */}
+          <motion.div variants={fadeInUp}>
+            <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  >
+                    <Mail className="h-5 w-5 text-primary" />
+                  </motion.div>
+                  Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {user ? (
+                  <>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <p className="text-sm font-medium">{user.email}</p>
+                    </div>
+                    <Separator />
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        variant="destructive" 
+                        className="w-full"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign Out
+                      </Button>
+                    </motion.div>
+                  </>
+                ) : (
+                  <motion.div whileTap={{ scale: 0.98 }}>
+                    <Button 
+                      className="w-full"
+                      onClick={() => navigate("/auth")}
+                    >
+                      Sign In to Your Account
+                    </Button>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Theme Card */}
+          <motion.div variants={fadeInUp}>
+            <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Palette className="h-5 w-5 text-primary" />
+                  </motion.div>
+                  Theme
+                </CardTitle>
+                <CardDescription>
+                  Choose your preferred appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Light Themes */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Light Themes</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {lightThemes.map((theme, index) => (
+                      <motion.button
+                        key={theme.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleThemeChange(theme.id)}
+                        className={`
+                          flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-colors duration-200
+                          ${currentTheme === theme.id 
+                            ? "border-primary bg-primary/10" 
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }
+                        `}
+                      >
+                        <motion.div 
+                          className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}
+                          animate={currentTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <theme.icon className="w-4 h-4 text-foreground/80" />
+                        </motion.div>
+                        <span className="text-xs font-medium">{theme.name}</span>
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
+
                 <Separator />
-                <Button 
-                  variant="destructive" 
-                  className="w-full"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <Button 
-                className="w-full"
-                onClick={() => navigate("/auth")}
-              >
-                Sign In to Your Account
-              </Button>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Theme Card */}
-        <Card className="bg-card/80 backdrop-blur-sm border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Palette className="h-5 w-5 text-primary" />
-              Theme
-            </CardTitle>
-            <CardDescription>
-              Choose your preferred appearance
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Light Themes */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sun className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Light Themes</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {lightThemes.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleThemeChange(theme.id)}
-                    className={`
-                      flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200
-                      ${currentTheme === theme.id 
-                        ? "border-primary bg-primary/10 scale-105 shadow-md" 
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      }
-                    `}
-                  >
-                    <div className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}>
-                      <theme.icon className="w-4 h-4 text-foreground/80" />
-                    </div>
-                    <span className="text-xs font-medium">{theme.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Dark Themes */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Moon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dark Themes</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  <Zap className="h-2.5 w-2.5 mr-0.5" />
-                  Pro
-                </Badge>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {darkThemes.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleThemeChange(theme.id)}
-                    className={`
-                      flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200
-                      ${currentTheme === theme.id 
-                        ? "border-primary bg-primary/10 scale-105 shadow-md" 
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      }
-                    `}
-                  >
-                    <div className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}>
-                      <theme.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs font-medium">{theme.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                {/* Dark Themes */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dark Themes</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      <Zap className="h-2.5 w-2.5 mr-0.5" />
+                      Pro
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {darkThemes.map((theme, index) => (
+                      <motion.button
+                        key={theme.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 + index * 0.05 }}
+                        whileHover={{ scale: 1.05, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleThemeChange(theme.id)}
+                        className={`
+                          flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-colors duration-200
+                          ${currentTheme === theme.id 
+                            ? "border-primary bg-primary/10" 
+                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }
+                        `}
+                      >
+                        <motion.div 
+                          className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}
+                          animate={currentTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <theme.icon className="w-4 h-4 text-white" />
+                        </motion.div>
+                        <span className="text-xs font-medium">{theme.name}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </PageTransition>
     </AppLayout>
   );
 }
