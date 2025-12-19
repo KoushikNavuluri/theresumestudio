@@ -18,11 +18,20 @@ import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
+// Dark theme IDs for color-scheme setting
+const darkThemes = ["dark", "midnight", "noir", "dracula", "cyberpunk"];
+
 // Theme initialization
 function ThemeInit() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("app-theme") || "light";
-    document.documentElement.classList.add(`theme-${savedTheme}`);
+    const root = document.documentElement;
+    
+    // Apply theme class
+    root.classList.add(`theme-${savedTheme}`);
+    
+    // Set color-scheme for proper native styling
+    root.style.colorScheme = darkThemes.includes(savedTheme) ? "dark" : "light";
     
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
@@ -59,31 +68,36 @@ function AppContent() {
     setShowOnboarding(false);
   };
 
+  // Hide main app content during splash or onboarding
+  const showMainContent = !showSplash && !showOnboarding;
+
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showSplash && (
           <SplashScreen onComplete={handleSplashComplete} />
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {!showSplash && showOnboarding && (
           <Onboarding onComplete={handleOnboardingComplete} />
         )}
       </AnimatePresence>
 
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/saved" element={<Saved />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/install" element={<Install />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      {showMainContent && (
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/saved" element={<Saved />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/install" element={<Install />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      )}
     </>
   );
 }

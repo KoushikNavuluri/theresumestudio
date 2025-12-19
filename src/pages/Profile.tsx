@@ -69,6 +69,11 @@ export default function Profile() {
     
     // Add new theme class
     root.classList.add(`theme-${theme}`);
+    
+    // Update color-scheme for proper native styling
+    const themeConfig = themes.find(t => t.id === theme);
+    root.style.colorScheme = themeConfig?.isDark ? "dark" : "light";
+    
     localStorage.setItem("app-theme", theme);
   };
 
