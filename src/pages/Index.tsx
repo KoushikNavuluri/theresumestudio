@@ -1,10 +1,22 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { LatexOutputPanel } from "@/components/LatexOutputPanel";
 import { Footer } from "@/components/Footer";
+import { SavedResumes } from "@/components/SavedResumes";
+import { useAuth } from "@/hooks/useAuth";
+import { useResumes } from "@/hooks/useResumes";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { LogIn, LogOut, Save, User } from "lucide-react";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { resumes, saveResume } = useResumes();
+  
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -21,61 +33,53 @@ const Index = () => {
     }
 
     setIsGenerating(true);
-    setStatus({ message: "Generating optimized LaTeX and PDF… This can take up to ~2 minutes.", type: "loading" });
+    setStatus({ message: "Generating optimized LaTeX resume… This can take up to ~2 minutes.", type: "loading" });
     setLatexCode("");
     setDownloadUrl(null);
 
-    // Simulate generation for now (will be connected to backend later)
-    setTimeout(() => {
-      const sampleLatex = `\\documentclass[10pt,a4paper]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[margin=0.5in]{geometry}
-\\usepackage{enumitem}
-\\usepackage{hyperref}
-\\usepackage{fontawesome}
-\\usepackage{lmodern}
+    try {
+      // Step 1: Optimize resume using AI
+      const optimizeResponse = await supabase.functions.invoke('optimize-resume', {
+        body: { job_description: jobDescription }
+      });
 
-\\hypersetup{
-    colorlinks=true,
-    linkcolor=black,
-    urlcolor=black,
-}
+      if (optimizeResponse.error) {
+        throw new Error(optimizeResponse.error.message || 'Failed to optimize resume');
+      }
 
-\\pagestyle{empty}
+      const { latex_code } = optimizeResponse.data;
+      
+      if (!latex_code) {
+        throw new Error('No LaTeX code generated');
+      }
 
-\\begin{document}
+      setLatexCode(latex_code);
+      setStatus({ message: "LaTeX generated! Converting to PDF…", type: "loading" });
 
-% Name
-\\begin{center}
-{\\huge \\textbf{YOUR NAME}}
-\\end{center}
+      // Step 2: Convert LaTeX to PDF
+      const convertResponse = await supabase.functions.invoke('convert-latex', {
+        body: { latex_code }
+      });
 
-% Contact Info
-\\begin{center}
-\\small
-\\faEnvelope\\ \\href{mailto:youremail@gmail.com}{youremail@gmail.com} \\quad
-\\faPhone\\ 1234567890 \\quad
-\\faGlobe\\ \\href{https://portfolio.com}{portfolio} \\quad
-\\faLinkedin\\ \\href{https://linkedin.com/yourid}{LinkedIn} \\quad
-\\faGithub\\ \\href{https://github.com/yourid}{Github}
-\\end{center}
+      if (convertResponse.error) {
+        setStatus({ message: "LaTeX generated successfully! PDF conversion failed.", type: "success" });
+        console.error('PDF conversion error:', convertResponse.error);
+      } else if (convertResponse.data?.success && convertResponse.data?.pdf_url) {
+        setDownloadUrl(convertResponse.data.pdf_url);
+        setStatus({ message: "Success! Resume optimized and PDF generated.", type: "success" });
+      } else {
+        setStatus({ message: "LaTeX generated successfully! PDF conversion failed.", type: "success" });
+      }
 
-\\vspace{6pt}
-
-% Professional Summary
-\\noindent\\textbf{Professional Summary}
-\\vspace{2pt}
-\\hrule
-\\vspace{6pt}
-\\noindent
-Full-stack developer with expertise in modern technologies...
-
-\\end{document}`;
-
-      setLatexCode(sampleLatex);
-      setStatus({ message: "LaTeX generated! Connect backend for PDF generation.", type: "success" });
+    } catch (error) {
+      console.error('Generation error:', error);
+      setStatus({ 
+        message: error instanceof Error ? error.message : "Failed to generate resume", 
+        type: "error" 
+      });
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   const handleClear = () => {
@@ -85,12 +89,89 @@ Full-stack developer with expertise in modern technologies...
     setDownloadUrl(null);
   };
 
+  const handleSaveResume = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save your resumes.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    if (!latexCode) {
+      toast({
+        title: "No resume to save",
+        description: "Generate a resume first before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const title = `Resume - ${new Date().toLocaleDateString()}`;
+    const result = await saveResume(title, jobDescription, latexCode, downloadUrl || undefined);
+
+    if (result) {
+      toast({
+        title: "Resume saved!",
+        description: "Your resume has been saved to your account.",
+      });
+    } else {
+      toast({
+        title: "Save failed",
+        description: "Failed to save resume. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLoadResume = (resume: { job_description: string | null; latex_code: string | null; pdf_url: string | null }) => {
+    if (resume.job_description) setJobDescription(resume.job_description);
+    if (resume.latex_code) setLatexCode(resume.latex_code);
+    if (resume.pdf_url) setDownloadUrl(resume.pdf_url);
+    setStatus({ message: "Resume loaded successfully.", type: "success" });
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You've been signed out successfully.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Background gradient effect */}
       <div className="fixed inset-0 bg-[image:var(--gradient-bg)] pointer-events-none" />
       
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20">
+        {/* Auth controls */}
+        <div className="flex justify-end mb-4 gap-2">
+          {authLoading ? (
+            <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
+          ) : user ? (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">{user.email}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/auth">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In
+              </Link>
+            </Button>
+          )}
+        </div>
+
         <Header />
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-8">
@@ -104,8 +185,25 @@ Full-stack developer with expertise in modern technologies...
             downloadUrl={downloadUrl}
           />
           
-          <LatexOutputPanel latexCode={latexCode} />
+          <div className="space-y-4">
+            <LatexOutputPanel latexCode={latexCode} />
+            
+            {latexCode && (
+              <Button 
+                onClick={handleSaveResume} 
+                className="w-full"
+                variant="secondary"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {user ? "Save Resume" : "Sign in to Save"}
+              </Button>
+            )}
+          </div>
         </div>
+
+        {user && resumes.length > 0 && (
+          <SavedResumes resumes={resumes} onLoadResume={handleLoadResume} />
+        )}
       </div>
       
       <Footer />

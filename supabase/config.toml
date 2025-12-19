@@ -1,1 +1,7 @@
 project_id = "bubkiuqriimtvzljwmqx"
+
+[functions.optimize-resume]
+verify_jwt = false
+
+[functions.convert-latex]
+verify_jwt = false
