@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { SubscriptionCard } from "@/components/SubscriptionCard";
 import { 
   User, 
   Mail, 
@@ -155,6 +156,9 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Subscription & Credits */}
+        {user && <SubscriptionCard />}
 
         {/* Theme Card */}
         <Card className="bg-card/80 backdrop-blur-sm border-border">
