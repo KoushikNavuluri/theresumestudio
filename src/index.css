@@ -5,45 +5,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Design System - All colors are HSL */
 
 @layer base {
-  :root {
+  /* Light Theme (Default) */
+  :root,
+  .theme-light {
     --background: 0 0% 98%;
     --foreground: 222 47% 11%;
-
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-
     --primary: 225 73% 57%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 47% 11%;
-
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
-
     --accent: 260 60% 60%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 225 73% 57%;
-
     --radius: 0.75rem;
-
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 225 73% 57%;
@@ -52,24 +41,280 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 225 73% 57%;
-
     --chart-1: 225 73% 57%;
     --chart-2: 260 60% 60%;
     --chart-3: 142 76% 36%;
     --chart-4: 45 93% 47%;
     --chart-5: 0 84% 60%;
-
-    --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-    --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-
+    --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Space Mono', ui-monospace, monospace;
     --shadow-glow: 0 0 40px hsl(225 73% 57% / 0.1);
     --shadow-card: 0 4px 24px hsl(222 47% 11% / 0.08);
     --gradient-primary: linear-gradient(135deg, hsl(225 73% 57%), hsl(260 60% 60%));
     --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(225 73% 57% / 0.08), transparent);
   }
-}
 
-@layer base {
+  /* Ocean Theme - Calm blue waters */
+  .theme-ocean {
+    --background: 200 50% 97%;
+    --foreground: 200 80% 10%;
+    --card: 200 30% 100%;
+    --card-foreground: 200 80% 10%;
+    --popover: 200 30% 100%;
+    --popover-foreground: 200 80% 10%;
+    --primary: 200 80% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 25% 94%;
+    --secondary-foreground: 200 80% 10%;
+    --muted: 200 20% 94%;
+    --muted-foreground: 200 20% 40%;
+    --accent: 180 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --border: 200 20% 88%;
+    --input: 200 20% 90%;
+    --ring: 200 80% 50%;
+    --shadow-glow: 0 0 40px hsl(200 80% 50% / 0.15);
+    --shadow-card: 0 4px 24px hsl(200 80% 10% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(200 80% 50%), hsl(180 60% 45%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(200 80% 50% / 0.1), transparent);
+  }
+
+  /* Forest Theme - Natural greens */
+  .theme-forest {
+    --background: 140 25% 97%;
+    --foreground: 140 40% 10%;
+    --card: 140 15% 100%;
+    --card-foreground: 140 40% 10%;
+    --popover: 140 15% 100%;
+    --popover-foreground: 140 40% 10%;
+    --primary: 142 60% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 140 18% 94%;
+    --secondary-foreground: 140 40% 10%;
+    --muted: 140 15% 93%;
+    --muted-foreground: 140 15% 40%;
+    --accent: 80 50% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --border: 140 15% 88%;
+    --input: 140 15% 90%;
+    --ring: 142 60% 40%;
+    --shadow-glow: 0 0 40px hsl(142 60% 40% / 0.15);
+    --shadow-card: 0 4px 24px hsl(140 40% 10% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(142 60% 40%), hsl(80 50% 45%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(142 60% 40% / 0.1), transparent);
+  }
+
+  /* Sunset Theme - Warm oranges */
+  .theme-sunset {
+    --background: 30 40% 97%;
+    --foreground: 20 60% 10%;
+    --card: 30 30% 100%;
+    --card-foreground: 20 60% 10%;
+    --popover: 30 30% 100%;
+    --popover-foreground: 20 60% 10%;
+    --primary: 25 90% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 25% 94%;
+    --secondary-foreground: 20 60% 10%;
+    --muted: 30 20% 94%;
+    --muted-foreground: 25 20% 40%;
+    --accent: 350 70% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --border: 30 20% 88%;
+    --input: 30 20% 90%;
+    --ring: 25 90% 55%;
+    --shadow-glow: 0 0 40px hsl(25 90% 55% / 0.15);
+    --shadow-card: 0 4px 24px hsl(20 60% 10% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(25 90% 55%), hsl(350 70% 55%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(25 90% 55% / 0.1), transparent);
+  }
+
+  /* Lavender Theme - Soft purples */
+  .theme-lavender {
+    --background: 270 25% 97%;
+    --foreground: 270 40% 10%;
+    --card: 270 15% 100%;
+    --card-foreground: 270 40% 10%;
+    --popover: 270 15% 100%;
+    --popover-foreground: 270 40% 10%;
+    --primary: 270 60% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 18% 94%;
+    --secondary-foreground: 270 40% 10%;
+    --muted: 270 15% 94%;
+    --muted-foreground: 270 15% 40%;
+    --accent: 320 50% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --border: 270 15% 88%;
+    --input: 270 15% 90%;
+    --ring: 270 60% 60%;
+    --shadow-glow: 0 0 40px hsl(270 60% 60% / 0.15);
+    --shadow-card: 0 4px 24px hsl(270 40% 10% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(270 60% 60%), hsl(320 50% 55%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(270 60% 60% / 0.1), transparent);
+  }
+
+  /* Dark Theme - Classic dark mode */
+  .theme-dark {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 96%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 225 73% 65%;
+    --primary-foreground: 222 47% 5%;
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 47% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 260 60% 65%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 46%;
+    --success-foreground: 222 47% 5%;
+    --border: 222 30% 18%;
+    --input: 222 30% 14%;
+    --ring: 225 73% 65%;
+    --shadow-glow: 0 0 40px hsl(225 73% 65% / 0.15);
+    --shadow-card: 0 4px 24px hsl(222 47% 5% / 0.4);
+    --gradient-primary: linear-gradient(135deg, hsl(225 73% 65%), hsl(260 60% 65%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(225 73% 65% / 0.15), transparent);
+  }
+
+  /* Midnight Theme - Deep blue night */
+  .theme-midnight {
+    --background: 230 35% 7%;
+    --foreground: 220 20% 95%;
+    --card: 230 35% 10%;
+    --card-foreground: 220 20% 95%;
+    --popover: 230 35% 10%;
+    --popover-foreground: 220 20% 95%;
+    --primary: 220 80% 60%;
+    --primary-foreground: 230 35% 7%;
+    --secondary: 230 30% 15%;
+    --secondary-foreground: 220 20% 95%;
+    --muted: 230 25% 15%;
+    --muted-foreground: 220 15% 60%;
+    --accent: 280 70% 60%;
+    --accent-foreground: 230 35% 7%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 220 20% 98%;
+    --success: 160 70% 45%;
+    --success-foreground: 230 35% 7%;
+    --border: 230 25% 18%;
+    --input: 230 25% 12%;
+    --ring: 220 80% 60%;
+    --shadow-glow: 0 0 40px hsl(220 80% 60% / 0.2);
+    --shadow-card: 0 4px 24px hsl(230 35% 5% / 0.5);
+    --gradient-primary: linear-gradient(135deg, hsl(220 80% 60%), hsl(280 70% 60%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(220 80% 60% / 0.15), transparent);
+  }
+
+  /* Noir Theme - Black with neon accents */
+  .theme-noir {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 165 100% 50%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 330 100% 60%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 165 100% 45%;
+    --success-foreground: 0 0% 4%;
+    --border: 0 0% 16%;
+    --input: 0 0% 12%;
+    --ring: 165 100% 50%;
+    --shadow-glow: 0 0 40px hsl(165 100% 50% / 0.25);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.6);
+    --gradient-primary: linear-gradient(135deg, hsl(165 100% 50%), hsl(330 100% 60%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(165 100% 50% / 0.1), transparent);
+  }
+
+  /* Dracula Theme - Purple vampire aesthetic */
+  .theme-dracula {
+    --background: 231 15% 10%;
+    --foreground: 60 30% 96%;
+    --card: 231 15% 13%;
+    --card-foreground: 60 30% 96%;
+    --popover: 231 15% 13%;
+    --popover-foreground: 60 30% 96%;
+    --primary: 265 89% 78%;
+    --primary-foreground: 231 15% 10%;
+    --secondary: 231 15% 18%;
+    --secondary-foreground: 60 30% 96%;
+    --muted: 231 15% 18%;
+    --muted-foreground: 225 15% 60%;
+    --accent: 135 94% 65%;
+    --accent-foreground: 231 15% 10%;
+    --destructive: 0 100% 67%;
+    --destructive-foreground: 60 30% 98%;
+    --success: 135 94% 55%;
+    --success-foreground: 231 15% 10%;
+    --border: 231 15% 20%;
+    --input: 231 15% 14%;
+    --ring: 265 89% 78%;
+    --shadow-glow: 0 0 40px hsl(265 89% 78% / 0.2);
+    --shadow-card: 0 4px 24px hsl(231 15% 5% / 0.5);
+    --gradient-primary: linear-gradient(135deg, hsl(265 89% 78%), hsl(135 94% 65%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(265 89% 78% / 0.12), transparent);
+  }
+
+  /* Cyberpunk Theme - Neon pink/cyan */
+  .theme-cyberpunk {
+    --background: 260 20% 6%;
+    --foreground: 180 100% 95%;
+    --card: 260 20% 10%;
+    --card-foreground: 180 100% 95%;
+    --popover: 260 20% 10%;
+    --popover-foreground: 180 100% 95%;
+    --primary: 320 100% 60%;
+    --primary-foreground: 260 20% 6%;
+    --secondary: 260 20% 16%;
+    --secondary-foreground: 180 100% 95%;
+    --muted: 260 20% 16%;
+    --muted-foreground: 260 15% 55%;
+    --accent: 180 100% 50%;
+    --accent-foreground: 260 20% 6%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 180 100% 98%;
+    --success: 160 80% 50%;
+    --success-foreground: 260 20% 6%;
+    --border: 260 20% 18%;
+    --input: 260 20% 12%;
+    --ring: 320 100% 60%;
+    --shadow-glow: 0 0 50px hsl(320 100% 60% / 0.3);
+    --shadow-card: 0 4px 24px hsl(260 20% 3% / 0.6);
+    --gradient-primary: linear-gradient(135deg, hsl(320 100% 60%), hsl(180 100% 50%));
+    --gradient-bg: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(320 100% 60% / 0.15), transparent);
+  }
+
   * {
     @apply border-border;
   }
@@ -77,12 +322,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
-  
+
   /* Safe area padding for iOS */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }

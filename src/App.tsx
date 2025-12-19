@@ -15,13 +15,17 @@ import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
 import { useAuth } from "./hooks/useAuth";
+import { applyTheme, getSavedTheme } from "@/lib/theme";
 
 const queryClient = new QueryClient();
 
-// Splash screen cleanup - runs on app load
+// App init - applies theme and removes splash
 function AppInit() {
   useEffect(() => {
-    // Hide native splash screen after React loads
+    // Apply saved theme
+    applyTheme(getSavedTheme());
+
+    // Hide native splash screen
     const splash = document.getElementById("splash-screen");
     if (splash) {
       splash.classList.add("fade-out");
