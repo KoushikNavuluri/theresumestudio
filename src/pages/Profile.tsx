@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
@@ -13,80 +13,53 @@ import {
   User, 
   Mail, 
   LogOut, 
-  Palette, 
-  Sun, 
-  Moon, 
-  Sparkles,
-  Leaf,
-  Sunset,
-  Waves,
-  Zap,
-  Ghost,
-  Skull,
-  Flame
+  Coins,
+  Gift,
+  Crown,
+  Sparkles
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-type ThemeOption = "light" | "dark" | "ocean" | "forest" | "sunset" | "lavender" | "midnight" | "noir" | "dracula" | "cyberpunk";
-
-interface ThemeConfig {
-  id: ThemeOption;
-  name: string;
-  icon: React.ElementType;
-  colors: string;
-  isDark?: boolean;
+interface ProfileData {
+  credits: number;
+  bonus_credits: number;
+  plan: string;
+  plan_credits_used: number;
+  credits_reset_at: string | null;
 }
-
-const themes: ThemeConfig[] = [
-  // Light themes
-  { id: "light", name: "Light", icon: Sun, colors: "bg-slate-100 border-slate-300" },
-  { id: "ocean", name: "Ocean", icon: Waves, colors: "bg-sky-400 border-sky-300" },
-  { id: "forest", name: "Forest", icon: Leaf, colors: "bg-emerald-500 border-emerald-400" },
-  { id: "sunset", name: "Sunset", icon: Sunset, colors: "bg-orange-500 border-orange-400" },
-  { id: "lavender", name: "Lavender", icon: Sparkles, colors: "bg-purple-400 border-purple-300" },
-  // Dark themes
-  { id: "dark", name: "Dark", icon: Moon, colors: "bg-slate-800 border-slate-600", isDark: true },
-  { id: "midnight", name: "Midnight", icon: Moon, colors: "bg-indigo-900 border-indigo-700", isDark: true },
-  { id: "noir", name: "Noir", icon: Ghost, colors: "bg-zinc-900 border-teal-500", isDark: true },
-  { id: "dracula", name: "Dracula", icon: Skull, colors: "bg-purple-950 border-purple-600", isDark: true },
-  { id: "cyberpunk", name: "Cyberpunk", icon: Flame, colors: "bg-fuchsia-900 border-fuchsia-500", isDark: true },
-];
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const [currentTheme, setCurrentTheme] = useState<ThemeOption>("light");
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("app-theme") as ThemeOption || "light";
-    setCurrentTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
+    const fetchProfile = async () => {
+      if (!user) {
+        setLoadingProfile(false);
+        return;
+      }
 
-  const applyTheme = (theme: ThemeOption) => {
-    const root = document.documentElement;
-    
-    // Remove all theme classes
-    themes.forEach(t => root.classList.remove(`theme-${t.id}`));
-    
-    // Add new theme class
-    root.classList.add(`theme-${theme}`);
-    
-    // Update color-scheme for proper native styling
-    const themeConfig = themes.find(t => t.id === theme);
-    root.style.colorScheme = themeConfig?.isDark ? "dark" : "light";
-    
-    localStorage.setItem("app-theme", theme);
-  };
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('credits, bonus_credits, plan, plan_credits_used, credits_reset_at')
+          .eq('user_id', user.id)
+          .single();
 
-  const handleThemeChange = (theme: ThemeOption) => {
-    setCurrentTheme(theme);
-    applyTheme(theme);
-    toast({
-      title: "Theme updated",
-      description: `Switched to ${theme} theme`,
-    });
-  };
+        if (error) throw error;
+        setProfileData(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -97,7 +70,26 @@ export default function Profile() {
     navigate("/auth");
   };
 
-  if (loading) {
+  const getPlanCredits = (plan: string) => {
+    switch (plan) {
+      case 'pro': return 100;
+      case 'premium': return 500;
+      default: return 10;
+    }
+  };
+
+  const getPlanBadge = (plan: string) => {
+    switch (plan) {
+      case 'pro':
+        return <Badge className="bg-primary text-primary-foreground"><Crown className="h-3 w-3 mr-1" />Pro</Badge>;
+      case 'premium':
+        return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"><Sparkles className="h-3 w-3 mr-1" />Premium</Badge>;
+      default:
+        return <Badge variant="secondary">Free</Badge>;
+    }
+  };
+
+  if (loading || loadingProfile) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-screen">
@@ -107,8 +99,10 @@ export default function Profile() {
     );
   }
 
-  const lightThemes = themes.filter(t => !t.isDark);
-  const darkThemes = themes.filter(t => t.isDark);
+  const totalCredits = (profileData?.credits || 0) + (profileData?.bonus_credits || 0);
+  const planCredits = getPlanCredits(profileData?.plan || 'free');
+  const usedCredits = profileData?.plan_credits_used || 0;
+  const remainingPlanCredits = Math.max(0, planCredits - usedCredits);
 
   return (
     <AppLayout>
@@ -129,8 +123,93 @@ export default function Profile() {
               <User className="w-10 h-10 text-primary-foreground" />
             </motion.div>
             <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-            <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
+            <p className="text-muted-foreground text-sm">Manage your account and credits</p>
           </motion.div>
+
+          {/* Credits Card */}
+          {user && profileData && (
+            <motion.div variants={fadeInUp}>
+              <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                      >
+                        <Coins className="h-5 w-5 text-primary" />
+                      </motion.div>
+                      Credits
+                    </CardTitle>
+                    {getPlanBadge(profileData.plan)}
+                  </div>
+                  <CardDescription>
+                    Your available credits for resume optimization
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Total Credits Display */}
+                  <div className="text-center p-4 rounded-xl bg-muted/50">
+                    <motion.div 
+                      className="text-4xl font-bold text-primary"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                    >
+                      {totalCredits}
+                    </motion.div>
+                    <p className="text-sm text-muted-foreground mt-1">Total Credits Available</p>
+                  </div>
+
+                  {/* Credits Breakdown */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Plan Credits</p>
+                          <p className="text-xs text-muted-foreground">
+                            {remainingPlanCredits} of {planCredits} remaining
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-semibold">{remainingPlanCredits}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <Gift className="h-4 w-4 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Bonus Credits</p>
+                          <p className="text-xs text-muted-foreground">From promo codes</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold">{profileData.bonus_credits}</span>
+                    </div>
+                  </div>
+
+                  {profileData.plan === 'free' && (
+                    <>
+                      <Separator />
+                      <motion.div whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          className="w-full"
+                          onClick={() => navigate("/upgrade")}
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Upgrade for More Credits
+                        </Button>
+                      </motion.div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Account Card */}
           <motion.div variants={fadeInUp}>
@@ -175,107 +254,6 @@ export default function Profile() {
                     </Button>
                   </motion.div>
                 )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Theme Card */}
-          <motion.div variants={fadeInUp}>
-            <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Palette className="h-5 w-5 text-primary" />
-                  </motion.div>
-                  Theme
-                </CardTitle>
-                <CardDescription>
-                  Choose your preferred appearance
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Light Themes */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Sun className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Light Themes</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {lightThemes.map((theme, index) => (
-                      <motion.button
-                        key={theme.id}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleThemeChange(theme.id)}
-                        className={`
-                          flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-colors duration-200
-                          ${currentTheme === theme.id 
-                            ? "border-primary bg-primary/10" 
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
-                          }
-                        `}
-                      >
-                        <motion.div 
-                          className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}
-                          animate={currentTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <theme.icon className="w-4 h-4 text-foreground/80" />
-                        </motion.div>
-                        <span className="text-xs font-medium">{theme.name}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Dark Themes */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Moon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dark Themes</span>
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      <Zap className="h-2.5 w-2.5 mr-0.5" />
-                      Pro
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {darkThemes.map((theme, index) => (
-                      <motion.button
-                        key={theme.id}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 + index * 0.05 }}
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleThemeChange(theme.id)}
-                        className={`
-                          flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-colors duration-200
-                          ${currentTheme === theme.id 
-                            ? "border-primary bg-primary/10" 
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
-                          }
-                        `}
-                      >
-                        <motion.div 
-                          className={`w-8 h-8 rounded-full ${theme.colors} border-2 flex items-center justify-center shadow-inner`}
-                          animate={currentTheme === theme.id ? { scale: [1, 1.1, 1] } : {}}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <theme.icon className="w-4 h-4 text-white" />
-                        </motion.div>
-                        <span className="text-xs font-medium">{theme.name}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
