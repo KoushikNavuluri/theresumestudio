@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         name: "ResumeStudio - ATS Resume Generator",
         short_name: "ResumeStudio",
@@ -29,21 +29,21 @@ export default defineConfig(({ mode }) => ({
         categories: ["productivity", "utilities", "business"],
         icons: [
           {
-            src: "pwa-192x192.svg",
+            src: "pwa-192x192.png",
             sizes: "192x192",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "any"
           },
           {
-            src: "pwa-512x512.svg",
+            src: "pwa-512x512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "any"
           },
           {
-            src: "apple-touch-icon.svg",
-            sizes: "180x180",
-            type: "image/svg+xml",
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
             purpose: "maskable"
           }
         ],
