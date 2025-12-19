@@ -41,24 +41,6 @@
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-    <script>
-      (function () {
-        try {
-          var themes = ["light","dark","ocean","forest","sunset","lavender","midnight","noir","dracula","cyberpunk"];
-          var darkThemes = { dark: true, midnight: true, noir: true, dracula: true, cyberpunk: true };
-          var saved = localStorage.getItem("app-theme") || "light";
-          var theme = themes.indexOf(saved) !== -1 ? saved : "light";
-          var root = document.documentElement;
-          // Apply to <html> immediately
-          for (var i = 0; i < themes.length; i++) root.classList.remove("theme-" + themes[i]);
-          root.classList.add("theme-" + theme);
-          if (darkThemes[theme]) root.classList.add("dark");
-          else root.classList.remove("dark");
-          root.style.colorScheme = darkThemes[theme] ? "dark" : "light";
-        } catch (e) {}
-      })();
-    </script>
-
     <style>
       /* Splash screen styles - shown before React loads */
       #splash-screen {

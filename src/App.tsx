@@ -15,32 +15,18 @@ import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
 import { useAuth } from "./hooks/useAuth";
-import { applyTheme, getSavedTheme } from "@/lib/theme";
 
 const queryClient = new QueryClient();
 
-// Theme initialization - runs on app load
-function ThemeInit() {
+// Splash screen cleanup - runs on app load
+function AppInit() {
   useEffect(() => {
-    // Ensure theme is applied on mount
-    applyTheme(getSavedTheme());
-
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
     if (splash) {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 500);
     }
-
-    // Sync theme from other tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "app-theme") {
-        applyTheme(getSavedTheme());
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   return null;
@@ -55,7 +41,7 @@ function AppContent() {
   useEffect(() => {
     // Check if onboarding was completed
     const onboardingComplete = localStorage.getItem("onboarding-complete");
-    
+
     // Show onboarding for new users after sign up
     if (!loading && user && !onboardingComplete) {
       setShowOnboarding(true);
@@ -76,9 +62,7 @@ function AppContent() {
   return (
     <>
       <AnimatePresence mode="wait">
-        {showSplash && (
-          <SplashScreen onComplete={handleSplashComplete} />
-        )}
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
@@ -107,7 +91,7 @@ function AppContent() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <ThemeInit />
+      <AppInit />
       <Toaster />
       <Sonner />
       <AppContent />
