@@ -52,12 +52,20 @@ export const applyTheme = (theme: ThemeOption) => {
     body?.classList.remove(`theme-${t}`);
   });
 
-  // Apply theme class to html (and body when available)
+  // Apply theme class
   root.classList.add(`theme-${theme}`);
   body?.classList.add(`theme-${theme}`);
 
-  // Native controls
-  root.style.colorScheme = DARK_THEMES.includes(theme) ? "dark" : "light";
+  // Tailwind dark-mode support (for any `dark:` classes)
+  if (DARK_THEMES.includes(theme)) {
+    root.classList.add("dark");
+    body?.classList.add("dark");
+    root.style.colorScheme = "dark";
+  } else {
+    root.classList.remove("dark");
+    body?.classList.remove("dark");
+    root.style.colorScheme = "light";
+  }
 
   // Persist
   try {
