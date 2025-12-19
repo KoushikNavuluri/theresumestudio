@@ -15,56 +15,34 @@ import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
 import { useAuth } from "./hooks/useAuth";
+import { applyTheme, getSavedTheme } from "@/lib/theme";
 
 const queryClient = new QueryClient();
-
-// Dark theme IDs for color-scheme setting
-const darkThemes = ["dark", "midnight", "noir", "dracula", "cyberpunk"];
-const validThemes = ["light", "dark", "ocean", "forest", "sunset", "lavender", "midnight", "noir", "dracula", "cyberpunk"];
-
-// Apply theme immediately before React hydration
-const applyThemeImmediate = () => {
-  const savedTheme = localStorage.getItem("app-theme") || "light";
-  const theme = validThemes.includes(savedTheme) ? savedTheme : "light";
-  const root = document.documentElement;
-  
-  // Remove all possible theme classes first
-  validThemes.forEach(t => root.classList.remove(`theme-${t}`));
-  
-  // Apply theme class
-  root.classList.add(`theme-${theme}`);
-  
-  // Set color-scheme for proper native styling
-  root.style.colorScheme = darkThemes.includes(theme) ? "dark" : "light";
-};
-
-// Run immediately
-applyThemeImmediate();
 
 // Theme initialization - runs on app load
 function ThemeInit() {
   useEffect(() => {
-    // Re-apply theme on mount to ensure it's set
-    applyThemeImmediate();
-    
+    // Ensure theme is applied on mount
+    applyTheme(getSavedTheme());
+
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
     if (splash) {
       splash.classList.add("fade-out");
       setTimeout(() => splash.remove(), 500);
     }
-    
-    // Listen for storage changes (theme changed in another tab)
+
+    // Sync theme from other tabs
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "app-theme") {
-        applyThemeImmediate();
+        applyTheme(getSavedTheme());
       }
     };
-    
+
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
-  
+
   return null;
 }
 

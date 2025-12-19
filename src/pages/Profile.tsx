@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,13 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
-import { 
-  User, 
-  Mail, 
-  LogOut, 
-  Palette, 
-  Sun, 
-  Moon, 
+import {
+  User,
+  Mail,
+  LogOut,
+  Palette,
+  Sun,
+  Moon,
   Sparkles,
   Leaf,
   Sunset,
@@ -22,16 +22,16 @@ import {
   Zap,
   Ghost,
   Skull,
-  Flame
+  Flame,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-type ThemeOption = "light" | "dark" | "ocean" | "forest" | "sunset" | "lavender" | "midnight" | "noir" | "dracula" | "cyberpunk";
+import type { ThemeOption } from "@/lib/theme";
+import { applyTheme, getSavedTheme } from "@/lib/theme";
 
 interface ThemeConfig {
   id: ThemeOption;
   name: string;
-  icon: React.ElementType;
+  icon: ElementType;
   colors: string;
   isDark?: boolean;
 }
@@ -57,26 +57,10 @@ export default function Profile() {
   const [currentTheme, setCurrentTheme] = useState<ThemeOption>("light");
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("app-theme") as ThemeOption || "light";
+    const savedTheme = getSavedTheme();
     setCurrentTheme(savedTheme);
     applyTheme(savedTheme);
   }, []);
-
-  const applyTheme = (theme: ThemeOption) => {
-    const root = document.documentElement;
-    
-    // Remove all theme classes
-    themes.forEach(t => root.classList.remove(`theme-${t.id}`));
-    
-    // Add new theme class
-    root.classList.add(`theme-${theme}`);
-    
-    // Update color-scheme for proper native styling
-    const themeConfig = themes.find(t => t.id === theme);
-    root.style.colorScheme = themeConfig?.isDark ? "dark" : "light";
-    
-    localStorage.setItem("app-theme", theme);
-  };
 
   const handleThemeChange = (theme: ThemeOption) => {
     setCurrentTheme(theme);
