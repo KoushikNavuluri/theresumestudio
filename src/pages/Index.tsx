@@ -4,8 +4,11 @@ import { AppLayout } from "@/components/AppLayout";
 import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { ResumePreviewToggle } from "@/components/ResumePreviewToggle";
 import { ResumeAnalytics } from "@/components/ResumeAnalytics";
+import { Greeting } from "@/components/Greeting";
 import { useAuth } from "@/hooks/useAuth";
 import { useResumes } from "@/hooks/useResumes";
+import { useHaptics } from "@/hooks/useHaptics";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,6 +27,8 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { saveResume } = useResumes();
+  const haptics = useHaptics();
+  const { notifyResumeComplete, requestPermission } = usePushNotifications();
   
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
@@ -85,8 +90,14 @@ const Index = () => {
   const handleGenerate = async () => {
     if (!jobDescription.trim()) {
       setStatus({ message: "Please paste a job description.", type: "error" });
+      haptics.errorFeedback();
       return;
     }
+
+    haptics.mediumTap();
+    
+    // Request notification permission on first generate
+    requestPermission();
 
     setIsGenerating(true);
     setStatus({ message: "Generating optimized LaTeX resume… This can take up to ~2 minutes.", type: "loading" });
@@ -132,6 +143,10 @@ const Index = () => {
         setPdfBase64(convertResponse.data.pdf_base64);
         setDownloadUrl(`data:application/pdf;base64,${convertResponse.data.pdf_base64}`);
         setStatus({ message: "Success! Resume optimized and analyzed.", type: "success" });
+        
+        // Success feedback and notification
+        haptics.successFeedback();
+        notifyResumeComplete();
       } else {
         setStatus({ message: `LaTeX generated! PDF error: ${convertResponse.data?.error || 'Unknown error'}`, type: "success" });
       }
@@ -142,6 +157,7 @@ const Index = () => {
         message: error instanceof Error ? error.message : "Failed to generate resume", 
         type: "error" 
       });
+      haptics.errorFeedback();
       setIsConvertingPdf(false);
     } finally {
       setIsGenerating(false);
@@ -212,6 +228,9 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Greeting */}
+        <Greeting />
+        
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary mb-4">

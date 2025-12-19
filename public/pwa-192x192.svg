@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="192" height="192" rx="40" fill="url(#grad1)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="155" cy="38" r="28" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="38" cy="155" r="22" fill="rgba(255,255,255,0.08)"/>
+  
+  <!-- Document shape -->
+  <rect x="46" y="32" width="100" height="128" rx="10" fill="white" filter="url(#glow)"/>
+  
+  <!-- Document fold -->
+  <path d="M118 32 L146 60 L118 60 Z" fill="#e0e7ff"/>
+  
+  <!-- Header line -->
+  <rect x="62" y="74" width="68" height="7" rx="3.5" fill="url(#grad2)"/>
+  
+  <!-- Content lines -->
+  <rect x="62" y="92" width="54" height="4" rx="2" fill="#c4b5fd"/>
+  <rect x="62" y="103" width="62" height="4" rx="2" fill="#c4b5fd"/>
+  <rect x="62" y="114" width="46" height="4" rx="2" fill="#c4b5fd"/>
+  
+  <!-- Divider -->
+  <rect x="62" y="126" width="68" height="1" rx="0.5" fill="#e0e7ff"/>
+  
+  <!-- More lines -->
+  <rect x="62" y="135" width="58" height="4" rx="2" fill="#ddd6fe"/>
+  <rect x="62" y="146" width="50" height="4" rx="2" fill="#ddd6fe"/>
+  
+  <!-- Star -->
+  <g transform="translate(112, 128)" filter="url(#glow)">
+    <path d="M11 0 L13 8 L21 9.5 L13 11 L11 19 L9 11 L1 9.5 L9 8 Z" fill="#fcd34d"/>
+  </g>
+  
+  <!-- AI Badge -->
+  <g filter="url(#glow)">
+    <circle cx="148" cy="148" r="24" fill="url(#grad2)"/>
+    <text x="148" y="155" text-anchor="middle" fill="white" font-family="system-ui" font-size="16" font-weight="bold">AI</text>
+  </g>
+</svg>

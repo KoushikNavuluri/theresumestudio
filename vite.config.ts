@@ -29,21 +29,21 @@ export default defineConfig(({ mode }) => ({
         categories: ["productivity", "utilities", "business"],
         icons: [
           {
-            src: "pwa-192x192.png",
+            src: "pwa-192x192.svg",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any"
           },
           {
-            src: "pwa-512x512.png",
+            src: "pwa-512x512.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any"
           },
           {
-            src: "pwa-maskable-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
+            src: "apple-touch-icon.svg",
+            sizes: "180x180",
+            type: "image/svg+xml",
             purpose: "maskable"
           }
         ],
