@@ -1,5 +1,8 @@
 project_id = "bubkiuqriimtvzljwmqx"
 
+[functions.generate-title]
+verify_jwt = false
+
 [functions.optimize-resume]
 verify_jwt = false
 
