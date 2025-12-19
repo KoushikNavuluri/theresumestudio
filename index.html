@@ -41,6 +41,22 @@
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
+    <script>
+      (function(){
+        try {
+          var themes=["light","ocean","forest","sunset","lavender","dark","midnight","noir","dracula","cyberpunk"];
+          var dark=["dark","midnight","noir","dracula","cyberpunk"];
+          var s=localStorage.getItem("app-theme")||"light";
+          var t=themes.indexOf(s)>-1?s:"light";
+          var r=document.documentElement;
+          themes.forEach(function(x){r.classList.remove("theme-"+x)});
+          r.classList.remove("dark");
+          r.classList.add("theme-"+t);
+          if(dark.indexOf(t)>-1)r.classList.add("dark");
+          r.style.colorScheme=dark.indexOf(t)>-1?"dark":"light";
+        }catch(e){}
+      })();
+    </script>
     <style>
       /* Splash screen styles - shown before React loads */
       #splash-screen {
