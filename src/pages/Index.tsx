@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
 import { FloatingParticles } from "@/components/animations/FloatingParticles";
+import { Confetti } from "@/components/animations/Confetti";
 import { Save, Sparkles, Zap, Target, FileText, TrendingUp } from "lucide-react";
 
 interface AnalyticsData {
@@ -40,6 +41,7 @@ const Index = () => {
   const [isConvertingPdf, setIsConvertingPdf] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [status, setStatus] = useState<{ message: string; type: "idle" | "loading" | "success" | "error" }>({
     message: "",
     type: "idle",
@@ -147,9 +149,11 @@ const Index = () => {
         setDownloadUrl(`data:application/pdf;base64,${convertResponse.data.pdf_base64}`);
         setStatus({ message: "Success! Resume optimized and analyzed.", type: "success" });
         
-        // Success feedback and notification
+        // Success feedback, notification and confetti
         haptics.successFeedback();
         notifyResumeComplete();
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 100);
       } else {
         setStatus({ message: `LaTeX generated! PDF error: ${convertResponse.data?.error || 'Unknown error'}`, type: "success" });
       }
@@ -230,6 +234,9 @@ const Index = () => {
 
   return (
     <AppLayout>
+      {/* Confetti celebration */}
+      <Confetti isActive={showConfetti} />
+      
       <PageTransition>
         <div className="max-w-7xl mx-auto px-4 py-6 relative">
           {/* Floating particles background */}
