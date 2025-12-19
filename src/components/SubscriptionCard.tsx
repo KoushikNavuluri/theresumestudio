@@ -4,27 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Zap, Sparkles, Gift, Mail } from "lucide-react";
+import { Zap, Sparkles, Gift, Mail, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function SubscriptionCard() {
   const { profile, loading, refetch, totalCredits } = useProfile();
   const [bonusCode, setBonusCode] = useState("");
   const [redeemingCode, setRedeemingCode] = useState(false);
+  const [redeemError, setRedeemError] = useState<string | null>(null);
 
   const handleRedeemCode = async () => {
     if (!bonusCode.trim()) return;
 
     setRedeemingCode(true);
+    setRedeemError(null);
     try {
       const { data, error } = await supabase.functions.invoke("redeem-bonus-code", {
         body: { code: bonusCode },
       });
 
       if (error) throw error;
+      
+      if (data?.error) {
+        setRedeemError(data.error);
+        return;
+      }
 
       toast({
         title: "Code redeemed!",
@@ -33,11 +41,12 @@ export function SubscriptionCard() {
       setBonusCode("");
       refetch();
     } catch (error: any) {
-      toast({
-        title: "Failed to redeem code",
-        description: error.message || "Invalid or expired code",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || "Invalid or expired code";
+      if (errorMessage.toLowerCase().includes("already redeemed")) {
+        setRedeemError("You have already redeemed this code");
+      } else {
+        setRedeemError(errorMessage);
+      }
     } finally {
       setRedeemingCode(false);
     }
@@ -117,12 +126,15 @@ export function SubscriptionCard() {
           </CardTitle>
           <CardDescription>Have a promo code? Enter it below</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex gap-2">
             <Input
               placeholder="Enter code"
               value={bonusCode}
-              onChange={(e) => setBonusCode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setBonusCode(e.target.value.toUpperCase());
+                setRedeemError(null);
+              }}
               className="uppercase"
             />
             <Button 
@@ -132,6 +144,14 @@ export function SubscriptionCard() {
               {redeemingCode ? "..." : "Redeem"}
             </Button>
           </div>
+          {redeemError && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                {redeemError}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
