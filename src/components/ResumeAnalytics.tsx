@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { AnalyticsSkeleton } from "@/components/ui/skeleton-shimmer";
+import { motion } from "framer-motion";
 import { 
   BarChart3, 
   Target, 
@@ -35,20 +37,7 @@ export function ResumeAnalytics({ analytics, isLoading }: ResumeAnalyticsProps) 
   };
 
   if (isLoading) {
-    return (
-      <Card className="bg-card/80 backdrop-blur-sm border-border animate-pulse">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            Resume Analytics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-24 bg-muted rounded-lg" />
-          <div className="h-16 bg-muted rounded-lg" />
-        </CardContent>
-      </Card>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   if (!analytics) {
