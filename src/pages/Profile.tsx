@@ -1,17 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
-import { User, Mail, LogOut } from "lucide-react";
+import { User, Mail, LogOut, Sun, Moon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -76,6 +79,34 @@ export default function Profile() {
                 Sign In to Your Account
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Appearance Card */}
+        <Card className="bg-card/80 backdrop-blur-sm border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              {theme === "dark" ? (
+                <Moon className="h-5 w-5 text-primary" />
+              ) : (
+                <Sun className="h-5 w-5 text-primary" />
+              )}
+              Appearance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Dark Mode</Label>
+                <p className="text-xs text-muted-foreground">
+                  Switch between light and dark theme
+                </p>
+              </div>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={toggleTheme}
+              />
+            </div>
           </CardContent>
         </Card>
 
