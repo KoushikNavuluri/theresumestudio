@@ -130,6 +130,40 @@ export function SubscriptionCard() {
         theme: {
           color: "#4f46e5",
         },
+        // Enable UPI and other payment methods
+        config: {
+          display: {
+            blocks: {
+              utib: { // UPI Block
+                name: "Pay using UPI",
+                instruments: [
+                  {
+                    method: "upi",
+                    flows: ["qr", "collect", "intent"]
+                  }
+                ]
+              },
+              other: { // Card, Netbanking, Wallet
+                name: "Other Payment Methods",
+                instruments: [
+                  { method: "card" },
+                  { method: "netbanking" },
+                  { method: "wallet" }
+                ]
+              }
+            },
+            sequence: ["block.utib", "block.other"],
+            preferences: {
+              show_default_blocks: false
+            }
+          }
+        },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => {
+            setProcessingPlan(null);
+          }
+        }
       };
 
       const razorpay = new window.Razorpay(options);
