@@ -1,22 +1,21 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
 import { Header } from "@/components/Header";
 import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { LatexOutputPanel } from "@/components/LatexOutputPanel";
 import { PdfPreviewPanel } from "@/components/PdfPreviewPanel";
-import { Footer } from "@/components/Footer";
-import { SavedResumes } from "@/components/SavedResumes";
 import { useAuth } from "@/hooks/useAuth";
 import { useResumes } from "@/hooks/useResumes";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, Save, User } from "lucide-react";
+import { Save, Sparkles } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { resumes, saveResume } = useResumes();
+  const { user } = useAuth();
+  const { saveResume } = useResumes();
   
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
@@ -28,6 +27,23 @@ const Index = () => {
     type: "idle",
   });
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  // Check for resume to load from saved page
+  useEffect(() => {
+    const savedResume = sessionStorage.getItem("loadResume");
+    if (savedResume) {
+      try {
+        const resume = JSON.parse(savedResume);
+        if (resume.job_description) setJobDescription(resume.job_description);
+        if (resume.latex_code) setLatexCode(resume.latex_code);
+        if (resume.pdf_url) setDownloadUrl(resume.pdf_url);
+        setStatus({ message: "Resume loaded successfully.", type: "success" });
+        sessionStorage.removeItem("loadResume");
+      } catch (e) {
+        console.error("Failed to load resume from session storage");
+      }
+    }
+  }, []);
 
   const handleGenerate = async () => {
     if (!jobDescription.trim()) {
@@ -119,13 +135,27 @@ const Index = () => {
       return;
     }
 
-    const title = `Resume - ${new Date().toLocaleDateString()}`;
+    // Generate AI title
+    let title = `Resume - ${new Date().toLocaleDateString()}`;
+    
+    try {
+      const titleResponse = await supabase.functions.invoke('generate-title', {
+        body: { job_description: jobDescription }
+      });
+      
+      if (titleResponse.data?.title) {
+        title = titleResponse.data.title;
+      }
+    } catch (e) {
+      console.log('Using default title');
+    }
+
     const result = await saveResume(title, jobDescription, latexCode, downloadUrl || undefined);
 
     if (result) {
       toast({
         title: "Resume saved!",
-        description: "Your resume has been saved to your account.",
+        description: `Saved as "${title}"`,
       });
     } else {
       toast({
@@ -136,57 +166,13 @@ const Index = () => {
     }
   };
 
-  const handleLoadResume = (resume: { job_description: string | null; latex_code: string | null; pdf_url: string | null }) => {
-    if (resume.job_description) setJobDescription(resume.job_description);
-    if (resume.latex_code) setLatexCode(resume.latex_code);
-    if (resume.pdf_url) setDownloadUrl(resume.pdf_url);
-    setPdfBase64(null); // Clear preview as we only have URL
-    setStatus({ message: "Resume loaded successfully.", type: "success" });
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Signed out",
-      description: "You've been signed out successfully.",
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background gradient effect */}
-      <div className="fixed inset-0 bg-[image:var(--gradient-bg)] pointer-events-none" />
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20">
-        {/* Auth controls */}
-        <div className="flex justify-end mb-4 gap-2">
-          {authLoading ? (
-            <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
-          ) : user ? (
-            <>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user.email}</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/auth">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
-              </Link>
-            </Button>
-          )}
-        </div>
-
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <Header />
         
-        {/* Main content - 3 column layout on large screens */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
+        {/* Main content grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
           {/* Job Description Panel */}
           <div className="lg:col-span-1">
             <JobDescriptionPanel
@@ -207,10 +193,10 @@ const Index = () => {
             {latexCode && (
               <Button 
                 onClick={handleSaveResume} 
-                className="w-full"
+                className="w-full gap-2"
                 variant="secondary"
               >
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4" />
                 {user ? "Save Resume" : "Sign in to Save"}
               </Button>
             )}
@@ -225,13 +211,22 @@ const Index = () => {
           </div>
         </div>
 
-        {user && resumes.length > 0 && (
-          <SavedResumes resumes={resumes} onLoadResume={handleLoadResume} />
-        )}
+        {/* Quick tips for mobile */}
+        <div className="mt-8 lg:hidden">
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-sm">Pro Tip</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Paste the complete job description for best ATS optimization results. The AI will tailor your resume with relevant keywords.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <Footer />
-    </div>
+    </AppLayout>
   );
 };
 
