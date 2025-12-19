@@ -66,19 +66,23 @@ export function useCredits() {
     };
   }, [user]);
 
-  const totalCredits = (creditsData?.credits || 0) + (creditsData?.bonus_credits || 0);
-  
+  // Total credits available to spend = remaining plan credits + bonus credits
   const getPlanCredits = (plan: string) => {
     switch (plan) {
-      case 'pro': return 100;
-      case 'premium': return 500;
-      default: return 10;
+      case 'pro':
+        return 100;
+      case 'basic':
+        return 100;
+      default:
+        return 10;
     }
   };
 
   const planCredits = getPlanCredits(creditsData?.plan || 'free');
   const usedCredits = creditsData?.plan_credits_used || 0;
   const remainingPlanCredits = Math.max(0, planCredits - usedCredits);
+  const totalCredits = remainingPlanCredits + (creditsData?.bonus_credits || 0);
+
 
   return {
     creditsData,
