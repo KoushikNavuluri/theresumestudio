@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,6 +142,47 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client with user's auth
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    );
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check user credits
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('credits, bonus_credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile error:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Profile not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const totalCredits = profile.credits + profile.bonus_credits;
+    if (totalCredits < 1) {
+      console.log('Insufficient credits for user:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'Insufficient credits. Please upgrade your plan.', code: 'INSUFFICIENT_CREDITS' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { job_description } = await req.json();
 
     if (!job_description) {
@@ -232,6 +274,25 @@ TASK: Revise the provided LaTeX resume code based on the posted job description.
     }
 
     console.log('Resume optimization completed successfully');
+
+    // Deduct 1 credit after successful generation
+    // First deduct from bonus_credits, then from plan credits
+    if (profile.bonus_credits >= 1) {
+      await supabaseClient
+        .from('profiles')
+        .update({ bonus_credits: profile.bonus_credits - 1 })
+        .eq('user_id', user.id);
+    } else {
+      await supabaseClient
+        .from('profiles')
+        .update({ 
+          credits: profile.credits - 1,
+          plan_credits_used: (await supabaseClient.from('profiles').select('plan_credits_used').eq('user_id', user.id).single()).data?.plan_credits_used + 1 || 1
+        })
+        .eq('user_id', user.id);
+    }
+
+    console.log('Credit deducted for user:', user.id);
 
     return new Response(
       JSON.stringify({ 
