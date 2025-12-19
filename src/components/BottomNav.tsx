@@ -1,10 +1,11 @@
-import { Home, FolderOpen, User, HelpCircle } from "lucide-react";
+import { Home, FolderOpen, User, HelpCircle, FileCode } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: FileCode, label: "Template", path: "/template" },
   { icon: FolderOpen, label: "Saved", path: "/saved" },
   { icon: User, label: "Profile", path: "/profile" },
   { icon: HelpCircle, label: "Help", path: "/help" },

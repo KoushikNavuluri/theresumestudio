@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
@@ -6,6 +6,8 @@ import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { ResumePreviewToggle } from "@/components/ResumePreviewToggle";
 import { ResumeAnalytics } from "@/components/ResumeAnalytics";
 import { Greeting } from "@/components/Greeting";
+import { CreditsDisplay } from "@/components/CreditsDisplay";
+import { SavingOverlay } from "@/components/SavingOverlay";
 import { useAuth } from "@/hooks/useAuth";
 import { useResumes } from "@/hooks/useResumes";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -17,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
 import { FloatingParticles } from "@/components/animations/FloatingParticles";
 import { Confetti } from "@/components/animations/Confetti";
-import { Save, Sparkles, Zap, Target, FileText, TrendingUp } from "lucide-react";
+import { Sparkles, Zap, Target, FileText, TrendingUp } from "lucide-react";
 
 interface AnalyticsData {
   atsScore: number;
@@ -48,6 +50,9 @@ const Index = () => {
   });
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
+  const hasAutoSavedRef = useRef(false);
 
   // Check for resume to load from saved page
   useEffect(() => {
@@ -145,8 +150,9 @@ const Index = () => {
         setStatus({ message: "LaTeX generated! PDF conversion failed.", type: "success" });
         console.error('PDF conversion error:', convertResponse.error);
       } else if (convertResponse.data?.success && convertResponse.data?.pdf_base64) {
+        const pdfUrl = `data:application/pdf;base64,${convertResponse.data.pdf_base64}`;
         setPdfBase64(convertResponse.data.pdf_base64);
-        setDownloadUrl(`data:application/pdf;base64,${convertResponse.data.pdf_base64}`);
+        setDownloadUrl(pdfUrl);
         setStatus({ message: "Success! Resume optimized and analyzed.", type: "success" });
         
         // Success feedback, notification and confetti
@@ -154,6 +160,12 @@ const Index = () => {
         notifyResumeComplete();
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 100);
+        
+        // Auto-save the resume
+        if (user) {
+          hasAutoSavedRef.current = false;
+          autoSaveResume(latex_code, jobDescription, pdfUrl);
+        }
       } else {
         setStatus({ message: `LaTeX generated! PDF error: ${convertResponse.data?.error || 'Unknown error'}`, type: "success" });
       }
@@ -181,52 +193,50 @@ const Index = () => {
     setHasGenerated(false);
   };
 
-  const handleSaveResume = async () => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to save your resumes.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    if (!latexCode) {
-      toast({
-        title: "No resume to save",
-        description: "Generate a resume first before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Generate AI title
-    let title = `Resume - ${new Date().toLocaleDateString()}`;
+  const autoSaveResume = async (latex: string, jobDesc: string, pdfUrl: string | null) => {
+    if (!user || hasAutoSavedRef.current) return;
     
+    hasAutoSavedRef.current = true;
+    setIsSaving(true);
+    setSaveStatus("saving");
+
     try {
-      const titleResponse = await supabase.functions.invoke('generate-title', {
-        body: { job_description: jobDescription }
-      });
+      // Generate AI title
+      let title = `Resume - ${new Date().toLocaleDateString()}`;
       
-      if (titleResponse.data?.title) {
-        title = titleResponse.data.title;
+      try {
+        const titleResponse = await supabase.functions.invoke('generate-title', {
+          body: { job_description: jobDesc }
+        });
+        
+        if (titleResponse.data?.title) {
+          title = titleResponse.data.title;
+        }
+      } catch (e) {
+        console.log('Using default title');
       }
-    } catch (e) {
-      console.log('Using default title');
-    }
 
-    const result = await saveResume(title, jobDescription, latexCode, downloadUrl || undefined);
+      const result = await saveResume(title, jobDesc, latex, pdfUrl || undefined);
 
-    if (result) {
+      if (result) {
+        setSaveStatus("success");
+        setTimeout(() => {
+          setIsSaving(false);
+          setSaveStatus("idle");
+          toast({
+            title: "Resume auto-saved!",
+            description: `Saved as "${title}"`,
+          });
+        }, 1500);
+      } else {
+        throw new Error("Failed to save");
+      }
+    } catch (error) {
+      setIsSaving(false);
+      setSaveStatus("idle");
       toast({
-        title: "Resume saved!",
-        description: `Saved as "${title}"`,
-      });
-    } else {
-      toast({
-        title: "Save failed",
-        description: "Failed to save resume. Please try again.",
+        title: "Auto-save failed",
+        description: "Failed to save resume. You can manually save from Saved page.",
         variant: "destructive",
       });
     }
@@ -237,10 +247,22 @@ const Index = () => {
       {/* Confetti celebration */}
       <Confetti isActive={showConfetti} />
       
+      {/* Saving Overlay */}
+      <SavingOverlay isVisible={isSaving} status={saveStatus} />
+      
       <PageTransition>
         <div className="max-w-7xl mx-auto px-4 py-6 relative">
           {/* Floating particles background */}
           <FloatingParticles count={8} />
+          
+          {/* Credits Display */}
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-end mb-4"
+          >
+            <CreditsDisplay />
+          </motion.div>
           
           {/* Greeting */}
           <Greeting />
@@ -382,31 +404,13 @@ const Index = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="lg:col-span-5 space-y-4"
+                className="lg:col-span-5"
               >
                 <ResumePreviewToggle 
                   latexCode={latexCode}
                   pdfBase64={pdfBase64}
                   isLoading={isConvertingPdf}
                 />
-                
-                {latexCode && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button 
-                      onClick={handleSaveResume} 
-                      className="w-full gap-2"
-                      size="lg"
-                    >
-                      <Save className="h-4 w-4" />
-                      {user ? "Save Resume" : "Sign in to Save"}
-                    </Button>
-                  </motion.div>
-                )}
               </motion.div>
 
               {/* Analytics Panel */}

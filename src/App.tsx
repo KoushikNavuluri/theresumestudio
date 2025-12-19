@@ -11,6 +11,7 @@ import Saved from "./pages/Saved";
 import Profile from "./pages/Profile";
 import Help from "./pages/Help";
 import Install from "./pages/Install";
+import Template from "./pages/Template";
 import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
@@ -102,6 +103,7 @@ function AppContent() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/help" element={<Help />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/template" element={<Template />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
