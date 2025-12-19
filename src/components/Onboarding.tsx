@@ -67,7 +67,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background flex flex-col"
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[200] bg-background flex flex-col"
     >
       {/* Skip button */}
       {!isLastSlide && (
