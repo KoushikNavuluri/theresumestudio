@@ -98,6 +98,17 @@ const Index = () => {
   };
 
   const handleGenerate = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to generate resumes.",
+        variant: "destructive",
+      });
+      haptics.errorFeedback();
+      navigate("/auth");
+      return;
+    }
+
     if (!jobDescription.trim()) {
       setStatus({ message: "Please paste a job description.", type: "error" });
       haptics.errorFeedback();
