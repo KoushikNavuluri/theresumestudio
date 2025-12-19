@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { LatexOutputPanel } from "@/components/LatexOutputPanel";
+import { PdfPreviewPanel } from "@/components/PdfPreviewPanel";
 import { Footer } from "@/components/Footer";
 import { SavedResumes } from "@/components/SavedResumes";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +20,9 @@ const Index = () => {
   
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isConvertingPdf, setIsConvertingPdf] = useState(false);
   const [status, setStatus] = useState<{ message: string; type: "idle" | "loading" | "success" | "error" }>({
     message: "",
     type: "idle",
@@ -35,6 +38,7 @@ const Index = () => {
     setIsGenerating(true);
     setStatus({ message: "Generating optimized LaTeX resume… This can take up to ~2 minutes.", type: "loading" });
     setLatexCode("");
+    setPdfBase64(null);
     setDownloadUrl(null);
 
     try {
@@ -55,20 +59,24 @@ const Index = () => {
 
       setLatexCode(latex_code);
       setStatus({ message: "LaTeX generated! Converting to PDF…", type: "loading" });
+      setIsConvertingPdf(true);
 
       // Step 2: Convert LaTeX to PDF
       const convertResponse = await supabase.functions.invoke('convert-latex', {
         body: { latex_code }
       });
 
+      setIsConvertingPdf(false);
+
       if (convertResponse.error) {
         setStatus({ message: "LaTeX generated successfully! PDF conversion failed.", type: "success" });
         console.error('PDF conversion error:', convertResponse.error);
-      } else if (convertResponse.data?.success && convertResponse.data?.pdf_url) {
-        setDownloadUrl(convertResponse.data.pdf_url);
+      } else if (convertResponse.data?.success && convertResponse.data?.pdf_base64) {
+        setPdfBase64(convertResponse.data.pdf_base64);
+        setDownloadUrl(`data:application/pdf;base64,${convertResponse.data.pdf_base64}`);
         setStatus({ message: "Success! Resume optimized and PDF generated.", type: "success" });
       } else {
-        setStatus({ message: "LaTeX generated successfully! PDF conversion failed.", type: "success" });
+        setStatus({ message: `LaTeX generated! PDF error: ${convertResponse.data?.error || 'Unknown error'}`, type: "success" });
       }
 
     } catch (error) {
@@ -77,6 +85,7 @@ const Index = () => {
         message: error instanceof Error ? error.message : "Failed to generate resume", 
         type: "error" 
       });
+      setIsConvertingPdf(false);
     } finally {
       setIsGenerating(false);
     }
@@ -85,6 +94,7 @@ const Index = () => {
   const handleClear = () => {
     setJobDescription("");
     setLatexCode("");
+    setPdfBase64(null);
     setStatus({ message: "", type: "idle" });
     setDownloadUrl(null);
   };
@@ -130,6 +140,7 @@ const Index = () => {
     if (resume.job_description) setJobDescription(resume.job_description);
     if (resume.latex_code) setLatexCode(resume.latex_code);
     if (resume.pdf_url) setDownloadUrl(resume.pdf_url);
+    setPdfBase64(null); // Clear preview as we only have URL
     setStatus({ message: "Resume loaded successfully.", type: "success" });
   };
 
@@ -146,7 +157,7 @@ const Index = () => {
       {/* Background gradient effect */}
       <div className="fixed inset-0 bg-[image:var(--gradient-bg)] pointer-events-none" />
       
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20">
         {/* Auth controls */}
         <div className="flex justify-end mb-4 gap-2">
           {authLoading ? (
@@ -174,18 +185,23 @@ const Index = () => {
 
         <Header />
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-8">
-          <JobDescriptionPanel
-            value={jobDescription}
-            onChange={setJobDescription}
-            onGenerate={handleGenerate}
-            onClear={handleClear}
-            isGenerating={isGenerating}
-            status={status}
-            downloadUrl={downloadUrl}
-          />
+        {/* Main content - 3 column layout on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
+          {/* Job Description Panel */}
+          <div className="lg:col-span-1">
+            <JobDescriptionPanel
+              value={jobDescription}
+              onChange={setJobDescription}
+              onGenerate={handleGenerate}
+              onClear={handleClear}
+              isGenerating={isGenerating}
+              status={status}
+              downloadUrl={downloadUrl}
+            />
+          </div>
           
-          <div className="space-y-4">
+          {/* LaTeX Output Panel */}
+          <div className="lg:col-span-1 space-y-4">
             <LatexOutputPanel latexCode={latexCode} />
             
             {latexCode && (
@@ -198,6 +214,14 @@ const Index = () => {
                 {user ? "Save Resume" : "Sign in to Save"}
               </Button>
             )}
+          </div>
+
+          {/* PDF Preview Panel */}
+          <div className="lg:col-span-1">
+            <PdfPreviewPanel 
+              pdfBase64={pdfBase64} 
+              isLoading={isConvertingPdf}
+            />
           </div>
         </div>
 
