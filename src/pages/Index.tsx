@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
 import { FloatingParticles } from "@/components/animations/FloatingParticles";
 import { Confetti } from "@/components/animations/Confetti";
+import { Hero3DIcon } from "@/components/animations/Hero3DIcon";
 import { Sparkles, Zap, Target, FileText, TrendingUp } from "lucide-react";
 
 interface AnalyticsData {
@@ -285,6 +286,9 @@ const Index = () => {
             animate="animate"
             className="text-center mb-8"
           >
+            {/* 3D Hero Icon */}
+            <Hero3DIcon />
+            
             <motion.div 
               variants={fadeInUp}
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary mb-4"
