@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.convert-latex]
 verify_jwt = false
+
+[functions.create-razorpay-order]
+verify_jwt = false
+
+[functions.verify-razorpay-payment]
+verify_jwt = false
+
+[functions.redeem-bonus-code]
+verify_jwt = false
