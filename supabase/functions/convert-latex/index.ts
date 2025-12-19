@@ -5,70 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function submitLatex(latexCode: string, uniqueId: string): Promise<boolean> {
-  const url = `https://texviewer.herokuapp.com/upload.php?uid=${uniqueId}`;
-  
-  const formData = new URLSearchParams();
-  formData.append('texts', latexCode);
-  formData.append('nonstopmode', '1');
-  formData.append('title', 'Optimized Resume');
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: formData.toString(),
-  });
-
-  return response.status === 200;
-}
-
-async function checkPdfStatus(uniqueId: string, maxAttempts = 30, delay = 2000): Promise<{ success: boolean; pdfUrl?: string; error?: string }> {
-  const checkUrl = 'https://texviewer.herokuapp.com/upload.php?action=checkcomplete';
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const formData = new URLSearchParams();
-      formData.append('uid', uniqueId);
-      formData.append('resultfile', `temp/${uniqueId}-result.txt`);
-
-      const response = await fetch(checkUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
-
-      if (response.status === 200) {
-        const result = await response.json();
-
-        if (result.error) {
-          return { success: false, error: result.error };
-        }
-
-        if (result.pdfname) {
-          return { success: true, pdfUrl: result.pdfname };
-        }
-
-        if (result.progress !== undefined) {
-          console.log(`PDF generation progress: ${result.progress}%`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-      }
-    } catch (error) {
-      console.error(`Attempt ${attempt + 1} failed:`, error);
-      if (attempt < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-    }
-  }
-
-  return { success: false, error: 'PDF generation timeout' };
-}
+const LATEX_API_URL = 'https://latex.ytotech.com/builds/sync';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -85,43 +22,54 @@ serve(async (req) => {
       );
     }
 
-    const uniqueId = crypto.randomUUID();
-    console.log(`Starting PDF generation with ID: ${uniqueId}`);
+    console.log('Starting PDF generation with ytotech API...');
 
-    // Submit LaTeX code
-    const submitted = await submitLatex(latex_code, uniqueId);
-    if (!submitted) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to submit LaTeX code' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const payload = {
+      compiler: "pdflatex",
+      resources: [
+        {
+          main: true,
+          content: latex_code
+        }
+      ]
+    };
 
-    console.log('LaTeX submitted, checking for PDF...');
+    const response = await fetch(LATEX_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-    // Check for PDF completion
-    const result = await checkPdfStatus(uniqueId);
-
-    if (result.success && result.pdfUrl) {
-      console.log(`PDF generated successfully: ${result.pdfUrl}`);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          pdf_url: result.pdfUrl,
-          message: 'PDF generated successfully'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      console.error('PDF generation failed:', result.error);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LaTeX API error:', response.status, errorText);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: result.error || 'PDF generation failed'
+          error: `LaTeX compilation failed: ${errorText.slice(0, 500)}` 
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // The API returns the PDF directly as binary
+    const pdfBuffer = await response.arrayBuffer();
+    const pdfBase64 = btoa(
+      new Uint8Array(pdfBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+
+    console.log('PDF generated successfully, size:', pdfBuffer.byteLength, 'bytes');
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        pdf_base64: pdfBase64,
+        message: 'PDF generated successfully'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in convert-latex function:', error);
