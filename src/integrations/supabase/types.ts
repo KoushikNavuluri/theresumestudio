@@ -14,159 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
-      bonus_codes: {
-        Row: {
-          code: string
-          created_at: string
-          credits: number
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          max_uses: number | null
-          uses: number | null
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          credits: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_uses?: number | null
-          uses?: number | null
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          credits?: number
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_uses?: number | null
-          uses?: number | null
-        }
-        Relationships: []
-      }
-      payments: {
-        Row: {
-          amount: number
-          created_at: string
-          currency: string
-          id: string
-          plan: Database["public"]["Enums"]["subscription_plan"] | null
-          razorpay_order_id: string | null
-          razorpay_payment_id: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          subscription_id: string | null
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          currency?: string
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"] | null
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          subscription_id?: string | null
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          currency?: string
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"] | null
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          subscription_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
-          bonus_credits: number
           created_at: string
-          credits: number
-          credits_reset_at: string | null
           email: string | null
           full_name: string | null
           id: string
-          plan: Database["public"]["Enums"]["subscription_plan"]
-          plan_credits_used: number
           updated_at: string
           user_id: string
         }
         Insert: {
-          bonus_credits?: number
           created_at?: string
-          credits?: number
-          credits_reset_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          plan_credits_used?: number
           updated_at?: string
           user_id: string
         }
         Update: {
-          bonus_credits?: number
           created_at?: string
-          credits?: number
-          credits_reset_at?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          plan_credits_used?: number
           updated_at?: string
           user_id?: string
         }
         Relationships: []
-      }
-      redeemed_codes: {
-        Row: {
-          bonus_code_id: string
-          created_at: string
-          credits_awarded: number
-          id: string
-          user_id: string
-        }
-        Insert: {
-          bonus_code_id: string
-          created_at?: string
-          credits_awarded: number
-          id?: string
-          user_id: string
-        }
-        Update: {
-          bonus_code_id?: string
-          created_at?: string
-          credits_awarded?: number
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "redeemed_codes_bonus_code_id_fkey"
-            columns: ["bonus_code_id"]
-            isOneToOne: false
-            referencedRelation: "bonus_codes"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       resumes: {
         Row: {
@@ -201,48 +74,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string
-          plan: Database["public"]["Enums"]["subscription_plan"]
-          razorpay_customer_id: string | null
-          razorpay_subscription_id: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          razorpay_customer_id?: string | null
-          razorpay_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          razorpay_customer_id?: string | null
-          razorpay_subscription_id?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -251,8 +82,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      payment_status: "pending" | "completed" | "failed" | "refunded"
-      subscription_plan: "free" | "basic" | "pro"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -379,9 +209,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      payment_status: ["pending", "completed", "failed", "refunded"],
-      subscription_plan: ["free", "basic", "pro"],
-    },
+    Enums: {},
   },
 } as const

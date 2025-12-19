@@ -5,13 +5,10 @@ import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { ResumePreviewToggle } from "@/components/ResumePreviewToggle";
 import { ResumeAnalytics } from "@/components/ResumeAnalytics";
 import { Greeting } from "@/components/Greeting";
-import { CreditsDisplay } from "@/components/CreditsDisplay";
-import { LowCreditsDialog } from "@/components/LowCreditsDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useResumes } from "@/hooks/useResumes";
 import { useHaptics } from "@/hooks/useHaptics";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -32,7 +29,6 @@ const Index = () => {
   const { saveResume } = useResumes();
   const haptics = useHaptics();
   const { notifyResumeComplete, requestPermission } = usePushNotifications();
-  const { profile, refetch: refetchProfile } = useProfile();
   
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
@@ -47,7 +43,6 @@ const Index = () => {
   });
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
-  const [showLowCreditsDialog, setShowLowCreditsDialog] = useState(false);
 
   // Check for resume to load from saved page
   useEffect(() => {
@@ -99,15 +94,6 @@ const Index = () => {
       return;
     }
 
-    // Check if user has credits
-    if (profile) {
-      const totalCredits = profile.credits + profile.bonus_credits;
-      if (totalCredits < 1) {
-        setShowLowCreditsDialog(true);
-        return;
-      }
-    }
-
     haptics.mediumTap();
     
     // Request notification permission on first generate
@@ -128,13 +114,6 @@ const Index = () => {
       });
 
       if (optimizeResponse.error) {
-        // Check for insufficient credits error
-        if (optimizeResponse.error.message?.includes('INSUFFICIENT_CREDITS') || 
-            optimizeResponse.data?.code === 'INSUFFICIENT_CREDITS') {
-          setShowLowCreditsDialog(true);
-          setStatus({ message: "", type: "idle" });
-          return;
-        }
         throw new Error(optimizeResponse.error.message || 'Failed to optimize resume');
       }
 
@@ -143,9 +122,6 @@ const Index = () => {
       if (!latex_code) {
         throw new Error('No LaTeX code generated');
       }
-
-      // Refetch profile to update credits display
-      refetchProfile();
 
       setLatexCode(latex_code);
       setHasGenerated(true);
@@ -171,14 +147,6 @@ const Index = () => {
         // Success feedback and notification
         haptics.successFeedback();
         notifyResumeComplete();
-
-        // Check if credits are low after generation
-        if (profile) {
-          const remainingCredits = (profile.credits + profile.bonus_credits) - 1;
-          if (remainingCredits < 5 && remainingCredits > 0) {
-            setTimeout(() => setShowLowCreditsDialog(true), 1500);
-          }
-        }
       } else {
         setStatus({ message: `LaTeX generated! PDF error: ${convertResponse.data?.error || 'Unknown error'}`, type: "success" });
       }
@@ -257,16 +225,11 @@ const Index = () => {
     }
   };
 
-  const totalCredits = profile ? profile.credits + profile.bonus_credits : 0;
-
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Credits Display and Greeting */}
-        <div className="flex items-center justify-between mb-4">
-          <Greeting />
-          {user && <CreditsDisplay compact />}
-        </div>
+        {/* Greeting */}
+        <Greeting />
         
         {/* Hero Section */}
         <div className="text-center mb-8">
@@ -371,13 +334,6 @@ const Index = () => {
           </div>
         )}
       </div>
-
-      {/* Low Credits Dialog */}
-      <LowCreditsDialog 
-        open={showLowCreditsDialog} 
-        onOpenChange={setShowLowCreditsDialog}
-        credits={totalCredits}
-      />
     </AppLayout>
   );
 };

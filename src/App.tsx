@@ -18,9 +18,29 @@ import { useAuth } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
-// Splash screen cleanup - runs on app load
-function AppInit() {
+// Dark theme IDs for color-scheme setting
+const darkThemes = ["dark", "midnight", "noir", "dracula", "cyberpunk"];
+const validThemes = ["light", "dark", "ocean", "forest", "sunset", "lavender", "midnight", "noir", "dracula", "cyberpunk"];
+
+// Theme initialization - runs on app load
+function ThemeInit() {
   useEffect(() => {
+    const savedTheme = localStorage.getItem("app-theme") || "light";
+    const theme = validThemes.includes(savedTheme) ? savedTheme : "light";
+    const root = document.documentElement;
+    
+    // Remove all possible theme classes first
+    validThemes.forEach(t => root.classList.remove(`theme-${t}`));
+    
+    // Apply theme class
+    root.classList.add(`theme-${theme}`);
+    
+    // Set color-scheme for proper native styling
+    root.style.colorScheme = darkThemes.includes(theme) ? "dark" : "light";
+    
+    // Force a style recalculation
+    document.body.style.backgroundColor = "";
+    
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
     if (splash) {
@@ -28,7 +48,7 @@ function AppInit() {
       setTimeout(() => splash.remove(), 500);
     }
   }, []);
-
+  
   return null;
 }
 
@@ -41,7 +61,7 @@ function AppContent() {
   useEffect(() => {
     // Check if onboarding was completed
     const onboardingComplete = localStorage.getItem("onboarding-complete");
-
+    
     // Show onboarding for new users after sign up
     if (!loading && user && !onboardingComplete) {
       setShowOnboarding(true);
@@ -62,7 +82,9 @@ function AppContent() {
   return (
     <>
       <AnimatePresence mode="wait">
-        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+        {showSplash && (
+          <SplashScreen onComplete={handleSplashComplete} />
+        )}
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
@@ -91,7 +113,7 @@ function AppContent() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AppInit />
+      <ThemeInit />
       <Toaster />
       <Sonner />
       <AppContent />

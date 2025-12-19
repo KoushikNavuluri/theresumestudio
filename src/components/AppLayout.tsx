@@ -11,11 +11,11 @@ export function AppLayout({ children, showNav = true }: AppLayoutProps) {
     <div className="min-h-screen bg-background relative">
       {/* Background gradient effect */}
       <div className="fixed inset-0 bg-[image:var(--gradient-bg)] pointer-events-none" />
-
+      
       <main className={`relative z-10 ${showNav ? "pb-24" : ""}`}>
         {children}
       </main>
-
+      
       {showNav && <BottomNav />}
     </div>
   );
