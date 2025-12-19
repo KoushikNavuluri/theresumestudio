@@ -20,18 +20,26 @@ const queryClient = new QueryClient();
 
 // Dark theme IDs for color-scheme setting
 const darkThemes = ["dark", "midnight", "noir", "dracula", "cyberpunk"];
+const validThemes = ["light", "dark", "ocean", "forest", "sunset", "lavender", "midnight", "noir", "dracula", "cyberpunk"];
 
-// Theme initialization
+// Theme initialization - runs on app load
 function ThemeInit() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("app-theme") || "light";
+    const theme = validThemes.includes(savedTheme) ? savedTheme : "light";
     const root = document.documentElement;
     
+    // Remove all possible theme classes first
+    validThemes.forEach(t => root.classList.remove(`theme-${t}`));
+    
     // Apply theme class
-    root.classList.add(`theme-${savedTheme}`);
+    root.classList.add(`theme-${theme}`);
     
     // Set color-scheme for proper native styling
-    root.style.colorScheme = darkThemes.includes(savedTheme) ? "dark" : "light";
+    root.style.colorScheme = darkThemes.includes(theme) ? "dark" : "light";
+    
+    // Force a style recalculation
+    document.body.style.backgroundColor = "";
     
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
