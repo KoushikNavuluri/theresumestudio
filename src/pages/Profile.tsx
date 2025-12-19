@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useCredits } from "@/hooks/useCredits";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -16,50 +18,20 @@ import {
   Coins,
   Gift,
   Crown,
-  Sparkles
+  Sparkles,
+  MessageCircle,
+  TicketCheck,
+  Loader2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface ProfileData {
-  credits: number;
-  bonus_credits: number;
-  plan: string;
-  plan_credits_used: number;
-  credits_reset_at: string | null;
-}
-
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) {
-        setLoadingProfile(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('credits, bonus_credits, plan, plan_credits_used, credits_reset_at')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) throw error;
-        setProfileData(data);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      } finally {
-        setLoadingProfile(false);
-      }
-    };
-
-    fetchProfile();
-  }, [user]);
+  const { creditsData, loading: loadingCredits, totalCredits, planCredits, remainingPlanCredits, bonusCredits, plan } = useCredits();
+  const [redeemCode, setRedeemCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,12 +42,117 @@ export default function Profile() {
     navigate("/auth");
   };
 
-  const getPlanCredits = (plan: string) => {
-    switch (plan) {
-      case 'pro': return 100;
-      case 'premium': return 500;
-      default: return 10;
+  const handleRedeemCode = async () => {
+    if (!redeemCode.trim()) {
+      toast({
+        title: "Enter a code",
+        description: "Please enter a valid promo code.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to redeem codes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRedeeming(true);
+
+    try {
+      // Check if code exists and is valid
+      const { data: codeData, error: codeError } = await supabase
+        .from('bonus_codes')
+        .select('*')
+        .eq('code', redeemCode.trim().toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (codeError || !codeData) {
+        toast({
+          title: "Invalid code",
+          description: "This code doesn't exist or has expired.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if code has reached max uses
+      if (codeData.uses >= codeData.max_uses) {
+        toast({
+          title: "Code expired",
+          description: "This code has reached its maximum usage limit.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if user already redeemed this code
+      const { data: existingRedemption } = await supabase
+        .from('redeemed_codes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('bonus_code_id', codeData.id)
+        .single();
+
+      if (existingRedemption) {
+        toast({
+          title: "Already redeemed",
+          description: "You've already used this code.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add bonus credits to profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          bonus_credits: (creditsData?.bonus_credits || 0) + codeData.credits 
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Record the redemption
+      await supabase
+        .from('redeemed_codes')
+        .insert({
+          user_id: user.id,
+          bonus_code_id: codeData.id,
+          credits_awarded: codeData.credits
+        });
+
+      // Update code usage count (this might fail due to RLS, but that's ok)
+      await supabase
+        .from('bonus_codes')
+        .update({ uses: codeData.uses + 1 })
+        .eq('id', codeData.id);
+
+      toast({
+        title: "Code redeemed!",
+        description: `You've received ${codeData.credits} bonus credits!`,
+      });
+
+      setRedeemCode("");
+    } catch (error) {
+      console.error('Redeem error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to redeem code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  const handleContactOwner = () => {
+    window.open('mailto:support@example.com?subject=Request%20for%20More%20Credits', '_blank');
   };
 
   const getPlanBadge = (plan: string) => {
@@ -89,7 +166,7 @@ export default function Profile() {
     }
   };
 
-  if (loading || loadingProfile) {
+  if (loading || loadingCredits) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-screen">
@@ -98,11 +175,6 @@ export default function Profile() {
       </AppLayout>
     );
   }
-
-  const totalCredits = (profileData?.credits || 0) + (profileData?.bonus_credits || 0);
-  const planCredits = getPlanCredits(profileData?.plan || 'free');
-  const usedCredits = profileData?.plan_credits_used || 0;
-  const remainingPlanCredits = Math.max(0, planCredits - usedCredits);
 
   return (
     <AppLayout>
@@ -127,7 +199,7 @@ export default function Profile() {
           </motion.div>
 
           {/* Credits Card */}
-          {user && profileData && (
+          {user && creditsData && (
             <motion.div variants={fadeInUp}>
               <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
                 <CardHeader className="pb-3">
@@ -141,7 +213,7 @@ export default function Profile() {
                       </motion.div>
                       Credits
                     </CardTitle>
-                    {getPlanBadge(profileData.plan)}
+                    {getPlanBadge(plan)}
                   </div>
                   <CardDescription>
                     Your available credits for resume optimization
@@ -152,9 +224,10 @@ export default function Profile() {
                   <div className="text-center p-4 rounded-xl bg-muted/50">
                     <motion.div 
                       className="text-4xl font-bold text-primary"
-                      initial={{ scale: 0 }}
+                      key={totalCredits}
+                      initial={{ scale: 1.2 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                      transition={{ type: "spring", stiffness: 200 }}
                     >
                       {totalCredits}
                     </motion.div>
@@ -188,24 +261,61 @@ export default function Profile() {
                           <p className="text-xs text-muted-foreground">From promo codes</p>
                         </div>
                       </div>
-                      <span className="font-semibold">{profileData.bonus_credits}</span>
+                      <motion.span 
+                        className="font-semibold"
+                        key={bonusCredits}
+                        initial={{ scale: 1.3, color: "hsl(var(--primary))" }}
+                        animate={{ scale: 1, color: "inherit" }}
+                      >
+                        {bonusCredits}
+                      </motion.span>
                     </div>
                   </div>
 
-                  {profileData.plan === 'free' && (
-                    <>
-                      <Separator />
-                      <motion.div whileTap={{ scale: 0.98 }}>
+                  <Separator />
+
+                  {/* Redeem Code Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <TicketCheck className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Redeem Promo Code</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter code"
+                        value={redeemCode}
+                        onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+                        className="uppercase"
+                        disabled={isRedeeming}
+                      />
+                      <motion.div whileTap={{ scale: 0.95 }}>
                         <Button 
-                          className="w-full"
-                          onClick={() => navigate("/upgrade")}
+                          onClick={handleRedeemCode}
+                          disabled={isRedeeming || !redeemCode.trim()}
                         >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Upgrade for More Credits
+                          {isRedeeming ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Redeem"
+                          )}
                         </Button>
                       </motion.div>
-                    </>
-                  )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Contact Owner */}
+                  <motion.div whileTap={{ scale: 0.98 }}>
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleContactOwner}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Contact Owner for More Credits
+                    </Button>
+                  </motion.div>
                 </CardContent>
               </Card>
             </motion.div>

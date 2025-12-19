@@ -1,5 +1,6 @@
 import { FileText, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { CreditsDisplay } from "./CreditsDisplay";
 
 export function Header() {
   return (
@@ -39,13 +40,14 @@ export function Header() {
         </div>
       </div>
       
-      <div className="sm:ml-auto hidden sm:block">
+      <div className="sm:ml-auto flex items-center gap-3">
+        <CreditsDisplay />
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
           whileHover={{ scale: 1.05 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+          className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
         >
           <motion.div
             animate={{ rotate: [0, 360] }}
