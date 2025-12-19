@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,6 +7,8 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const BASE_RESUME_TEMPLATE = `\\documentclass[10pt,a4paper]{article}
 \\usepackage[utf8]{inputenc}
@@ -158,9 +161,82 @@ serve(async (req) => {
       );
     }
 
+    // Get the user from auth header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with service role for admin operations
+    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    
+    // Create client with user's token to get their info
+    const supabaseClient = createClient(SUPABASE_URL!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('User auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get user's profile to check credits
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('credits, bonus_credits, plan_credits_used, plan')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch user profile' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Calculate available credits
+    const getPlanCredits = (plan: string) => {
+      switch (plan) {
+        case 'pro': return 100;
+        case 'basic': return 100;
+        default: return 10;
+      }
+    };
+
+    const planCredits = getPlanCredits(profile.plan);
+    const remainingPlanCredits = Math.max(0, planCredits - profile.plan_credits_used);
+    const totalAvailable = remainingPlanCredits + profile.bonus_credits;
+
+    if (totalAvailable < 1) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient credits. Please upgrade or add bonus credits.' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get user's default template if available
+    const { data: template } = await supabaseAdmin
+      .from('templates')
+      .select('latex_code')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .maybeSingle();
+
+    const resumeTemplate = template?.latex_code || BASE_RESUME_TEMPLATE;
+
     const prompt = `MY RESUME LATEX CODE:
 
-${BASE_RESUME_TEMPLATE}
+${resumeTemplate}
 
 JOB DETAILS: ${job_description}
 
@@ -229,6 +305,30 @@ TASK: Revise the provided LaTeX resume code based on the posted job description.
     const endDocMatch = latexCode.match(/\\end\{document\}/i);
     if (endDocMatch) {
       latexCode = latexCode.substring(0, endDocMatch.index! + endDocMatch[0].length);
+    }
+
+    // Deduct credits after successful generation
+    // First use plan credits, then bonus credits
+    let updateData: Record<string, number> = {};
+    
+    if (remainingPlanCredits >= 1) {
+      // Deduct from plan credits
+      updateData = { plan_credits_used: profile.plan_credits_used + 1 };
+    } else {
+      // Deduct from bonus credits
+      updateData = { bonus_credits: Math.max(0, profile.bonus_credits - 1) };
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update(updateData)
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('Failed to deduct credits:', updateError);
+      // Continue anyway since the generation was successful
+    } else {
+      console.log('Credits deducted successfully for user:', user.id);
     }
 
     console.log('Resume optimization completed successfully');
