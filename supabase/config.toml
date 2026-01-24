@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.redeem-bonus-code]
 verify_jwt = false
+
+[functions.admin-promo-codes]
+verify_jwt = false
