@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Saved from "./pages/Saved";
 import Profile from "./pages/Profile";
+import UserProfilePage from "./pages/UserProfilePage";
 import Help from "./pages/Help";
 import Install from "./pages/Install";
 import Template from "./pages/Template";
@@ -101,6 +102,7 @@ function AppContent() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/saved" element={<Saved />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/my-profile" element={<UserProfilePage />} />
             <Route path="/help" element={<Help />} />
             <Route path="/install" element={<Install />} />
             <Route path="/template" element={<Template />} />

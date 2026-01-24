@@ -38,6 +38,30 @@ export const useResumes = () => {
     fetchResumes();
   }, [user]);
 
+  // Helper to save a version
+  const saveVersion = async (resumeId: string, latexCode: string, jobDescription: string | null) => {
+    // Get current max version number
+    const { data: existingVersions } = await supabase
+      .from("resume_versions")
+      .select("version_number")
+      .eq("resume_id", resumeId)
+      .order("version_number", { ascending: false })
+      .limit(1);
+
+    const nextVersion = existingVersions && existingVersions.length > 0 
+      ? existingVersions[0].version_number + 1 
+      : 1;
+
+    await supabase
+      .from("resume_versions")
+      .insert({
+        resume_id: resumeId,
+        version_number: nextVersion,
+        latex_code: latexCode,
+        job_description: jobDescription,
+      });
+  };
+
   const saveResume = async (
     title: string,
     jobDescription: string,
@@ -63,6 +87,11 @@ export const useResumes = () => {
       return null;
     }
 
+    // Save initial version
+    if (data && latexCode) {
+      await saveVersion(data.id, latexCode, jobDescription);
+    }
+
     await fetchResumes();
     return data;
   };
@@ -71,6 +100,18 @@ export const useResumes = () => {
     id: string,
     updates: Partial<Pick<Resume, "title" | "job_description" | "latex_code" | "pdf_url">>
   ) => {
+    // If latex_code is being updated, save a version first
+    if (updates.latex_code) {
+      // Get current resume to get job_description
+      const { data: currentResume } = await supabase
+        .from("resumes")
+        .select("job_description")
+        .eq("id", id)
+        .single();
+      
+      await saveVersion(id, updates.latex_code, updates.job_description || currentResume?.job_description || null);
+    }
+
     const { error } = await supabase
       .from("resumes")
       .update(updates)
