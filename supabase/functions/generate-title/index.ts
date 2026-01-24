@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,6 +21,19 @@ serve(async (req) => {
         JSON.stringify({ title: 'Untitled Resume' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Validate input type and length
+    if (typeof job_description !== 'string') {
+      return new Response(
+        JSON.stringify({ title: 'Resume' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (job_description.length > MAX_JOB_DESC_LENGTH) {
+      console.log(`Job description too long: ${job_description.length} characters, truncating`);
+      // For title generation, we'll just truncate since it only uses first 1000 chars anyway
     }
 
     if (!LOVABLE_API_KEY) {

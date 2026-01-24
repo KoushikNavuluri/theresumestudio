@@ -64,78 +64,33 @@ export default function Profile() {
     setIsRedeeming(true);
 
     try {
-      // Check if code exists and is valid
-      const { data: codeData, error: codeError } = await supabase
-        .from('bonus_codes')
-        .select('*')
-        .eq('code', redeemCode.trim().toUpperCase())
-        .eq('is_active', true)
-        .single();
+      // Call secure edge function for atomic code redemption
+      const { data, error } = await supabase.functions.invoke('redeem-bonus-code', {
+        body: { code: redeemCode.trim() }
+      });
 
-      if (codeError || !codeData) {
+      if (error) {
+        console.error('Edge function error:', error);
         toast({
-          title: "Invalid code",
-          description: "This code doesn't exist or has expired.",
+          title: "Error",
+          description: "Failed to redeem code. Please try again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Check if code has reached max uses
-      if (codeData.uses >= codeData.max_uses) {
+      if (!data.success) {
         toast({
-          title: "Code expired",
-          description: "This code has reached its maximum usage limit.",
+          title: "Unable to redeem",
+          description: data.error || "This code is invalid or has already been used.",
           variant: "destructive",
         });
         return;
       }
-
-      // Check if user already redeemed this code
-      const { data: existingRedemption } = await supabase
-        .from('redeemed_codes')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('bonus_code_id', codeData.id)
-        .single();
-
-      if (existingRedemption) {
-        toast({
-          title: "Already redeemed",
-          description: "You've already used this code.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Add bonus credits to profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          bonus_credits: (creditsData?.bonus_credits || 0) + codeData.credits 
-        })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      // Record the redemption
-      await supabase
-        .from('redeemed_codes')
-        .insert({
-          user_id: user.id,
-          bonus_code_id: codeData.id,
-          credits_awarded: codeData.credits
-        });
-
-      // Update code usage count (this might fail due to RLS, but that's ok)
-      await supabase
-        .from('bonus_codes')
-        .update({ uses: codeData.uses + 1 })
-        .eq('id', codeData.id);
 
       toast({
         title: "Code redeemed!",
-        description: `You've received ${codeData.credits} bonus credits!`,
+        description: `You've received ${data.credits_awarded} bonus credits!`,
       });
 
       setRedeemCode("");

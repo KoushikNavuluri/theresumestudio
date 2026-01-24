@@ -6,6 +6,8 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const MAX_LATEX_LENGTH = 100000; // ~100KB limit
+const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -18,6 +20,31 @@ serve(async (req) => {
     if (!latex_code || !job_description) {
       return new Response(
         JSON.stringify({ error: 'Both latex_code and job_description are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input types
+    if (typeof latex_code !== 'string' || typeof job_description !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid input types' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input lengths
+    if (latex_code.length > MAX_LATEX_LENGTH) {
+      console.log(`LaTeX code too long: ${latex_code.length} characters`);
+      return new Response(
+        JSON.stringify({ error: `LaTeX code too long (max ${MAX_LATEX_LENGTH} characters)` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (job_description.length > MAX_JOB_DESC_LENGTH) {
+      console.log(`Job description too long: ${job_description.length} characters`);
+      return new Response(
+        JSON.stringify({ error: `Job description too long (max ${MAX_JOB_DESC_LENGTH} characters)` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

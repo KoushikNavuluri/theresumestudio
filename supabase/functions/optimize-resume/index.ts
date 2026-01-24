@@ -138,6 +138,8 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 
 \\end{document}`;
 
+const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -146,9 +148,17 @@ serve(async (req) => {
   try {
     const { job_description } = await req.json();
 
-    if (!job_description) {
+    if (!job_description || typeof job_description !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Job description is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (job_description.length > MAX_JOB_DESC_LENGTH) {
+      console.log(`Job description too long: ${job_description.length} characters`);
+      return new Response(
+        JSON.stringify({ error: `Job description too long (max ${MAX_JOB_DESC_LENGTH} characters)` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

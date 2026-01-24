@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const LATEX_API_URL = 'https://latex.ytotech.com/builds/sync';
+const MAX_LATEX_LENGTH = 100000; // ~100KB limit
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,9 +16,17 @@ serve(async (req) => {
   try {
     const { latex_code } = await req.json();
 
-    if (!latex_code) {
+    if (!latex_code || typeof latex_code !== 'string') {
       return new Response(
         JSON.stringify({ error: 'LaTeX code is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (latex_code.length > MAX_LATEX_LENGTH) {
+      console.log(`LaTeX code too long: ${latex_code.length} characters`);
+      return new Response(
+        JSON.stringify({ error: `LaTeX code too long (max ${MAX_LATEX_LENGTH} characters)` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
