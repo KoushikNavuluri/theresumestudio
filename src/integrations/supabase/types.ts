@@ -168,6 +168,41 @@ export type Database = {
           },
         ]
       }
+      resume_versions: {
+        Row: {
+          created_at: string
+          id: string
+          job_description: string | null
+          latex_code: string
+          resume_id: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          latex_code: string
+          resume_id: string
+          version_number?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          latex_code?: string
+          resume_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resumes: {
         Row: {
           created_at: string
@@ -270,6 +305,63 @@ export type Database = {
           name?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          address: string | null
+          certifications: Json | null
+          created_at: string
+          education: Json | null
+          email: string | null
+          full_name: string | null
+          github_url: string | null
+          id: string
+          linkedin_url: string | null
+          phone: string | null
+          portfolio_url: string | null
+          skills: string[] | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+          work_history: Json | null
+        }
+        Insert: {
+          address?: string | null
+          certifications?: Json | null
+          created_at?: string
+          education?: Json | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+          work_history?: Json | null
+        }
+        Update: {
+          address?: string | null
+          certifications?: Json | null
+          created_at?: string
+          education?: Json | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+          work_history?: Json | null
         }
         Relationships: []
       }
