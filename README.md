@@ -68,6 +68,12 @@ ResumeStudio is a modern web application that uses AI to optimize your resume fo
 - **Beautiful animations** with Framer Motion
 - **Dark/Light mode** support
 
+### 🔌 Developer API
+- **RESTful API** for programmatic access
+- **API key management** with granular permissions
+- **Rate limiting** and usage analytics
+- **Full documentation** with code examples
+
 ---
 
 ## 🔄 How It Works
@@ -202,6 +208,40 @@ The app uses several Supabase Edge Functions:
 | `analyze-resume` | ATS scoring & keyword analysis |
 | `generate-title` | AI-generated resume titles |
 | `redeem-bonus-code` | Promo code redemption |
+| `public-api` | Public REST API for developers |
+
+---
+
+## 🔌 API Reference
+
+ResumeStudio provides a REST API for programmatic access to all features.
+
+### Authentication
+
+```bash
+curl -X POST https://YOUR_PROJECT.supabase.co/functions/v1/public-api/optimize \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: rs_your_api_key_here" \
+  -d '{"job_description": "..."}'
+```
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/optimize` | POST | Generate ATS-optimized resume |
+| `/analyze` | POST | Analyze resume ATS compatibility |
+| `/convert` | POST | Convert LaTeX to PDF |
+| `/credits` | GET | Check credit balance |
+| `/resumes` | GET | List saved resumes |
+| `/resumes/:id` | GET | Get specific resume |
+
+### Rate Limits
+
+- **Per minute:** 10 requests
+- **Per day:** 100 requests
+
+Full API documentation available at `/api/docs` in the app.
 
 ---
 

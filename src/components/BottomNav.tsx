@@ -1,4 +1,4 @@
-import { Home, FolderOpen, User, HelpCircle, FileCode, Shield } from "lucide-react";
+import { Home, FolderOpen, User, HelpCircle, FileCode, Shield, Key } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const baseNavItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: FileCode, label: "Template", path: "/template" },
   { icon: FolderOpen, label: "Saved", path: "/saved" },
+  { icon: Key, label: "API", path: "/api" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 

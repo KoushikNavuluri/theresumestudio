@@ -13,6 +13,8 @@ import Help from "./pages/Help";
 import Install from "./pages/Install";
 import Template from "./pages/Template";
 import Admin from "./pages/Admin";
+import Api from "./pages/Api";
+import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
@@ -105,6 +107,8 @@ function AppContent() {
             <Route path="/help" element={<Help />} />
             <Route path="/install" element={<Install />} />
             <Route path="/template" element={<Template />} />
+            <Route path="/api" element={<Api />} />
+            <Route path="/api/docs" element={<ApiDocs />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
