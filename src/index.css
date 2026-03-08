@@ -440,3 +440,25 @@ All colors MUST be HSL.
     padding-top: env(safe-area-inset-top);
   }
 }
+@layer utilities {
+  .animate-gradient-flow {
+    background-size: 200% 200%;
+    animation: gradient-flow 4s ease infinite;
+  }
+
+  @keyframes gradient-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Subtle pulse for the heart */
+  .animate-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+}

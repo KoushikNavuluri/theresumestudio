@@ -1,31 +1,26 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
 import {
   User,
   Mail,
   LogOut,
   MessageCircle,
-  Loader2
+  Loader2,
+  Heart,
+  Code2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const [redeemCode, setRedeemCode] = useState("");
-  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,85 +29,6 @@ export default function Profile() {
       description: "You've been signed out successfully.",
     });
     navigate("/auth");
-  };
-
-  const handleRedeemCode = async () => {
-    if (!redeemCode.trim()) {
-      toast({
-        title: "Enter a code",
-        description: "Please enter a valid promo code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to redeem codes.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsRedeeming(true);
-
-    try {
-      // Call secure edge function for atomic code redemption
-      const { data, error } = await supabase.functions.invoke('redeem-bonus-code', {
-        body: { code: redeemCode.trim() }
-      });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to redeem code. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!data.success) {
-        toast({
-          title: "Unable to redeem",
-          description: data.error || "This code is invalid or has already been used.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Code redeemed!",
-        description: `You've received ${data.credits_awarded} bonus credits!`,
-      });
-
-      setRedeemCode("");
-    } catch (error) {
-      console.error('Redeem error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to redeem code. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
-
-  const handleContactOwner = () => {
-    window.open('mailto:support@example.com?subject=Request%20for%20More%20Credits', '_blank');
-  };
-
-  const getPlanBadge = (plan: string) => {
-    switch (plan) {
-      case 'pro':
-        return <Badge className="bg-primary text-primary-foreground"><Crown className="h-3 w-3 mr-1" />Pro</Badge>;
-      case 'premium':
-        return <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"><Sparkles className="h-3 w-3 mr-1" />Premium</Badge>;
-      default:
-        return <Badge variant="secondary">Free</Badge>;
-    }
   };
 
   if (loading) {
@@ -144,10 +60,8 @@ export default function Profile() {
               <User className="w-10 h-10 text-primary-foreground" />
             </motion.div>
             <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-            <p className="text-muted-foreground text-sm">Manage your account and credits</p>
+            <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
           </motion.div>
-
-
 
           {/* Account Card */}
           <motion.div variants={fadeInUp}>
@@ -194,6 +108,44 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
+          </motion.div>
+
+          {/* Developer Info */}
+          <motion.div
+            variants={fadeInUp}
+            className="text-center pt-8 pb-4 relative"
+          >
+            <div className="absolute inset-x-0 top-0 flex justify-center opacity-10">
+              <Separator className="w-1/2" />
+            </div>
+
+            <div className="inline-flex flex-col items-center gap-3 mt-6">
+              <div className="p-2 rounded-xl bg-primary/5 border border-primary/10">
+                <Code2 className="h-5 w-5 text-primary opacity-70" />
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm font-medium flex items-center justify-center gap-1.5 text-foreground/90">
+                  Crafted with
+                  <span className="inline-block animate-heartbeat">
+                    ❤️
+                  </span>
+                  for Py,
+                </p>
+                <p className="text-lg font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient-flow">
+                  Koushik Navuluri
+                </p>
+              </div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.6 }}
+                transition={{ delay: 1 }}
+                className="text-xs text-muted-foreground italic max-w-[250px] leading-relaxed"
+              >
+                "Empowering makers through elegant code and intelligent design."
+              </motion.p>
+            </div>
           </motion.div>
         </motion.div>
       </PageTransition>
