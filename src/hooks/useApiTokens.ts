@@ -191,7 +191,7 @@ export function useApiTokens() {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('api_tokens')
         .update(updates)
         .eq('id', tokenId)
@@ -221,7 +221,7 @@ export function useApiTokens() {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('api_tokens')
         .delete()
         .eq('id', tokenId)
