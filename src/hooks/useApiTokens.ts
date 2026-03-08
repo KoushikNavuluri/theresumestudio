@@ -48,7 +48,7 @@ export function useApiTokens() {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('api_tokens')
         .select('*')
         .eq('user_id', user.id)
@@ -76,7 +76,7 @@ export function useApiTokens() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: logs, error } = await supabase
+      const { data: logs, error } = await (supabase as any)
         .from('api_usage_logs')
         .select('endpoint, status_code, latency_ms, created_at')
         .eq('user_id', user.id)
@@ -153,7 +153,7 @@ export function useApiTokens() {
 
       const tokenPrefix = token.substring(0, 11); // rs_xxxxxxxx
 
-      const { data: newToken, error } = await supabase
+      const { data: newToken, error } = await (supabase as any)
         .from('api_tokens')
         .insert({
           user_id: user.id,
