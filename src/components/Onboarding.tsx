@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  Target, 
-  Sparkles, 
-  TrendingUp, 
+import {
+  FileText,
+  Target,
+  Sparkles,
+  TrendingUp,
   ArrowRight,
   CheckCircle2
 } from "lucide-react";
@@ -63,7 +63,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const isLastSlide = currentSlide === slides.length - 1;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -73,9 +73,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       {/* Skip button */}
       {!isLastSlide && (
         <div className="absolute top-6 right-6 safe-area-top">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleSkip}
             className="text-muted-foreground"
           >
@@ -136,13 +136,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           {slides.map((_, index) => (
             <motion.div
               key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentSlide 
-                  ? "w-8 bg-primary" 
-                  : index < currentSlide 
+              className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                  ? "w-8 bg-primary"
+                  : index < currentSlide
                     ? "w-2 bg-primary/50"
                     : "w-2 bg-muted"
-              }`}
+                }`}
             />
           ))}
         </div>

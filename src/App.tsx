@@ -13,8 +13,6 @@ import Help from "./pages/Help";
 import Install from "./pages/Install";
 import Template from "./pages/Template";
 import Admin from "./pages/Admin";
-import Api from "./pages/Api";
-import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
 import { SplashScreen } from "./components/SplashScreen";
 import { Onboarding } from "./components/Onboarding";
@@ -32,19 +30,19 @@ function ThemeInit() {
     const savedTheme = localStorage.getItem("app-theme") || "light";
     const theme = validThemes.includes(savedTheme) ? savedTheme : "light";
     const root = document.documentElement;
-    
+
     // Remove all possible theme classes first
     validThemes.forEach(t => root.classList.remove(`theme-${t}`));
-    
+
     // Apply theme class
     root.classList.add(`theme-${theme}`);
-    
+
     // Set color-scheme for proper native styling
     root.style.colorScheme = darkThemes.includes(theme) ? "dark" : "light";
-    
+
     // Force a style recalculation
     document.body.style.backgroundColor = "";
-    
+
     // Hide native splash screen after React loads
     const splash = document.getElementById("splash-screen");
     if (splash) {
@@ -52,7 +50,7 @@ function ThemeInit() {
       setTimeout(() => splash.remove(), 500);
     }
   }, []);
-  
+
   return null;
 }
 
@@ -65,7 +63,7 @@ function AppContent() {
   useEffect(() => {
     // Check if onboarding was completed
     const onboardingComplete = localStorage.getItem("onboarding-complete");
-    
+
     // Show onboarding for new users after sign up
     if (!loading && user && !onboardingComplete) {
       setShowOnboarding(true);
@@ -107,8 +105,7 @@ function AppContent() {
             <Route path="/help" element={<Help />} />
             <Route path="/install" element={<Install />} />
             <Route path="/template" element={<Template />} />
-            <Route path="/api" element={<Api />} />
-            <Route path="/api/docs" element={<ApiDocs />} />
+
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

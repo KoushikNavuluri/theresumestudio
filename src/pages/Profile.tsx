@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useCredits } from "@/hooks/useCredits";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,16 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
-import { 
-  User, 
-  Mail, 
-  LogOut, 
-  Coins,
-  Gift,
-  Crown,
-  Sparkles,
+import {
+  User,
+  Mail,
+  LogOut,
   MessageCircle,
-  TicketCheck,
   Loader2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -29,7 +24,6 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const { creditsData, loading: loadingCredits, totalCredits, planCredits, remainingPlanCredits, bonusCredits, plan } = useCredits();
   const [redeemCode, setRedeemCode] = useState("");
   const [isRedeeming, setIsRedeeming] = useState(false);
 
@@ -121,11 +115,11 @@ export default function Profile() {
     }
   };
 
-  if (loading || loadingCredits) {
+  if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
+          <div className="animate-pulse text-muted-foreground font-medium text-lg">Loading profile...</div>
         </div>
       </AppLayout>
     );
@@ -134,7 +128,7 @@ export default function Profile() {
   return (
     <AppLayout>
       <PageTransition>
-        <motion.div 
+        <motion.div
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -142,7 +136,7 @@ export default function Profile() {
         >
           {/* Header */}
           <motion.div variants={fadeInUp} className="text-center pt-4">
-            <motion.div 
+            <motion.div
               className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4 shadow-lg"
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ type: "spring", stiffness: 300 }}
@@ -153,128 +147,7 @@ export default function Profile() {
             <p className="text-muted-foreground text-sm">Manage your account and credits</p>
           </motion.div>
 
-          {/* Credits Card */}
-          {user && creditsData && (
-            <motion.div variants={fadeInUp}>
-              <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [0, 15, -15, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                      >
-                        <Coins className="h-5 w-5 text-primary" />
-                      </motion.div>
-                      Credits
-                    </CardTitle>
-                    {getPlanBadge(plan)}
-                  </div>
-                  <CardDescription>
-                    Your available credits for resume optimization
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Total Credits Display */}
-                  <div className="text-center p-4 rounded-xl bg-muted/50">
-                    <motion.div 
-                      className="text-4xl font-bold text-primary"
-                      key={totalCredits}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 200 }}
-                    >
-                      {totalCredits}
-                    </motion.div>
-                    <p className="text-sm text-muted-foreground mt-1">Total Credits Available</p>
-                  </div>
 
-                  {/* Credits Breakdown */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Crown className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Plan Credits</p>
-                          <p className="text-xs text-muted-foreground">
-                            {remainingPlanCredits} of {planCredits} remaining
-                          </p>
-                        </div>
-                      </div>
-                      <span className="font-semibold">{remainingPlanCredits}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <Gift className="h-4 w-4 text-green-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Bonus Credits</p>
-                          <p className="text-xs text-muted-foreground">From promo codes</p>
-                        </div>
-                      </div>
-                      <motion.span 
-                        className="font-semibold"
-                        key={bonusCredits}
-                        initial={{ scale: 1.3, color: "hsl(var(--primary))" }}
-                        animate={{ scale: 1, color: "inherit" }}
-                      >
-                        {bonusCredits}
-                      </motion.span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Redeem Code Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <TicketCheck className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Redeem Promo Code</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter code"
-                        value={redeemCode}
-                        onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-                        className="uppercase"
-                        disabled={isRedeeming}
-                      />
-                      <motion.div whileTap={{ scale: 0.95 }}>
-                        <Button 
-                          onClick={handleRedeemCode}
-                          disabled={isRedeeming || !redeemCode.trim()}
-                        >
-                          {isRedeeming ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "Redeem"
-                          )}
-                        </Button>
-                      </motion.div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Contact Owner */}
-                  <motion.div whileTap={{ scale: 0.98 }}>
-                    <Button 
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleContactOwner}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Contact Owner for More Credits
-                    </Button>
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
 
           {/* Account Card */}
           <motion.div variants={fadeInUp}>
@@ -299,8 +172,8 @@ export default function Profile() {
                     </div>
                     <Separator />
                     <motion.div whileTap={{ scale: 0.98 }}>
-                      <Button 
-                        variant="destructive" 
+                      <Button
+                        variant="destructive"
                         className="w-full"
                         onClick={handleSignOut}
                       >
@@ -311,7 +184,7 @@ export default function Profile() {
                   </>
                 ) : (
                   <motion.div whileTap={{ scale: 0.98 }}>
-                    <Button 
+                    <Button
                       className="w-full"
                       onClick={() => navigate("/auth")}
                     >

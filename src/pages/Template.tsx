@@ -14,34 +14,7 @@ const TemplatePage = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
-  if (!authLoading && !user) {
-    return (
-      <AppLayout>
-        <PageTransition>
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <motion.div variants={fadeInUp} className="flex items-center gap-3 mb-6">
-              <motion.div
-                className="w-12 h-12 rounded-2xl bg-[image:var(--gradient-primary)] flex items-center justify-center"
-                whileHover={{ scale: 1.05, rotate: 5 }}
-              >
-                <FileCode className="w-6 h-6 text-primary-foreground" />
-              </motion.div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Templates</h1>
-                <p className="text-sm text-muted-foreground">Manage your LaTeX resume templates</p>
-              </div>
-            </motion.div>
-            <Card className="p-12 text-center">
-              <FileCode className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Sign In Required</h3>
-              <p className="text-sm text-muted-foreground mb-4">Please sign in to manage your LaTeX templates</p>
-              <Button onClick={() => navigate("/auth")} className="gap-2">Sign In</Button>
-            </Card>
-          </div>
-        </PageTransition>
-      </AppLayout>
-    );
-  }
+
 
   return (
     <AppLayout>

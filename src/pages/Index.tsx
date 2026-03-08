@@ -6,7 +6,7 @@ import { JobDescriptionPanel } from "@/components/JobDescriptionPanel";
 import { ResumePreviewToggle } from "@/components/ResumePreviewToggle";
 import { ResumeAnalytics } from "@/components/ResumeAnalytics";
 import { Greeting } from "@/components/Greeting";
-import { CreditsDisplay } from "@/components/CreditsDisplay";
+
 import { SavingOverlay } from "@/components/SavingOverlay";
 import { useAuth } from "@/hooks/useAuth";
 import { useResumes } from "@/hooks/useResumes";
@@ -36,7 +36,7 @@ const Index = () => {
   const { saveResume } = useResumes();
   const haptics = useHaptics();
   const { notifyResumeComplete, requestPermission } = usePushNotifications();
-  
+
   const [jobDescription, setJobDescription] = useState("");
   const [latexCode, setLatexCode] = useState("");
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
@@ -99,16 +99,7 @@ const Index = () => {
   };
 
   const handleGenerate = async () => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to generate resumes.",
-        variant: "destructive",
-      });
-      haptics.errorFeedback();
-      navigate("/auth");
-      return;
-    }
+
 
     if (!jobDescription.trim()) {
       setStatus({ message: "Please paste a job description.", type: "error" });
@@ -117,7 +108,7 @@ const Index = () => {
     }
 
     haptics.mediumTap();
-    
+
     // Request notification permission on first generate
     requestPermission();
 
@@ -140,7 +131,7 @@ const Index = () => {
       }
 
       const { latex_code } = optimizeResponse.data;
-      
+
       if (!latex_code) {
         throw new Error('No LaTeX code generated');
       }
@@ -166,13 +157,13 @@ const Index = () => {
         setPdfBase64(convertResponse.data.pdf_base64);
         setDownloadUrl(pdfUrl);
         setStatus({ message: "Success! Resume optimized and analyzed.", type: "success" });
-        
+
         // Success feedback, notification and confetti
         haptics.successFeedback();
         notifyResumeComplete();
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 100);
-        
+
         // Auto-save the resume
         if (user) {
           hasAutoSavedRef.current = false;
@@ -184,9 +175,9 @@ const Index = () => {
 
     } catch (error) {
       console.error('Generation error:', error);
-      setStatus({ 
-        message: error instanceof Error ? error.message : "Failed to generate resume", 
-        type: "error" 
+      setStatus({
+        message: error instanceof Error ? error.message : "Failed to generate resume",
+        type: "error"
       });
       haptics.errorFeedback();
       setIsConvertingPdf(false);
@@ -207,7 +198,7 @@ const Index = () => {
 
   const autoSaveResume = async (latex: string, jobDesc: string, pdfUrl: string | null) => {
     if (!user || hasAutoSavedRef.current) return;
-    
+
     hasAutoSavedRef.current = true;
     setIsSaving(true);
     setSaveStatus("saving");
@@ -215,12 +206,12 @@ const Index = () => {
     try {
       // Generate AI title
       let title = `Resume - ${new Date().toLocaleDateString()}`;
-      
+
       try {
         const titleResponse = await supabase.functions.invoke('generate-title', {
           body: { job_description: jobDesc }
         });
-        
+
         if (titleResponse.data?.title) {
           title = titleResponse.data.title;
         }
@@ -258,29 +249,22 @@ const Index = () => {
     <AppLayout>
       {/* Confetti celebration */}
       <Confetti isActive={showConfetti} />
-      
+
       {/* Saving Overlay */}
       <SavingOverlay isVisible={isSaving} status={saveStatus} />
-      
+
       <PageTransition>
         <div className="max-w-7xl mx-auto px-4 py-6 relative">
           {/* Floating particles background */}
           <FloatingParticles count={8} />
-          
-          {/* Credits Display */}
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-end mb-4"
-          >
-            <CreditsDisplay />
-          </motion.div>
-          
+
+
+
           {/* Greeting */}
           <Greeting />
-          
+
           {/* Hero Section */}
-          <motion.div 
+          <motion.div
             variants={staggerContainer}
             initial="initial"
             animate="animate"
@@ -288,8 +272,8 @@ const Index = () => {
           >
             {/* 3D Hero Icon */}
             <Hero3DIcon />
-            
-            <motion.div 
+
+            <motion.div
               variants={fadeInUp}
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full text-xs font-medium text-primary mb-4"
             >
@@ -301,13 +285,13 @@ const Index = () => {
               </motion.div>
               AI-Powered Resume Optimization
             </motion.div>
-            <motion.h1 
+            <motion.h1
               variants={fadeInUp}
               className="text-3xl md:text-4xl font-bold text-foreground mb-3"
             >
               Land Your Dream Job
             </motion.h1>
-            <motion.p 
+            <motion.p
               variants={fadeInUp}
               className="text-muted-foreground max-w-xl mx-auto text-sm md:text-base"
             >
@@ -316,7 +300,7 @@ const Index = () => {
           </motion.div>
 
           {/* Features Pills */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -344,7 +328,7 @@ const Index = () => {
           {/* Main content */}
           {!hasGenerated ? (
             // Initial state - just job description panel centered
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -359,7 +343,7 @@ const Index = () => {
                 status={status}
                 downloadUrl={downloadUrl}
               />
-              
+
               {/* Quick tips */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -370,7 +354,7 @@ const Index = () => {
                 <Card className="mt-6 p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/10">
                   <div className="flex items-start gap-3">
                     <motion.div
-                      animate={{ 
+                      animate={{
                         rotate: [0, 15, -15, 0],
                         scale: [1, 1.1, 1]
                       }}
@@ -390,14 +374,14 @@ const Index = () => {
             </motion.div>
           ) : (
             // After generation - full layout with preview and analytics
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="grid grid-cols-1 lg:grid-cols-12 gap-4"
             >
               {/* Job Description - Narrower on large screens */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
@@ -413,15 +397,15 @@ const Index = () => {
                   downloadUrl={downloadUrl}
                 />
               </motion.div>
-              
+
               {/* Preview Toggle - Main area */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="lg:col-span-5"
               >
-                <ResumePreviewToggle 
+                <ResumePreviewToggle
                   latexCode={latexCode}
                   pdfBase64={pdfBase64}
                   isLoading={isConvertingPdf}
@@ -429,13 +413,13 @@ const Index = () => {
               </motion.div>
 
               {/* Analytics Panel */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
                 className="lg:col-span-3"
               >
-                <ResumeAnalytics 
+                <ResumeAnalytics
                   analytics={analytics}
                   isLoading={isAnalyzing}
                 />

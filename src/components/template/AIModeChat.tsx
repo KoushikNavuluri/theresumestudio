@@ -60,8 +60,6 @@ export function AIModeChat() {
       if (!resp.ok || !resp.body) {
         if (resp.status === 429) {
           toast({ title: "Rate limited", description: "Please wait a moment and try again.", variant: "destructive" });
-        } else if (resp.status === 402) {
-          toast({ title: "Credits exhausted", description: "Please add AI credits to continue.", variant: "destructive" });
         } else {
           toast({ title: "Error", description: "Failed to get AI response.", variant: "destructive" });
         }
@@ -177,11 +175,10 @@ export function AIModeChat() {
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                    msg.role === "user"
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
-                  }`}
+                    }`}
                 >
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2">
@@ -249,13 +246,13 @@ export function AIModeChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder={user ? "Type your response..." : "Sign in to use AI Mode"}
-          disabled={isLoading || !user}
+          placeholder="Type your response..."
+          disabled={isLoading}
           className="flex-1"
         />
         <Button
           onClick={handleSend}
-          disabled={isLoading || !input.trim() || !user}
+          disabled={isLoading || !input.trim()}
           size="icon"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

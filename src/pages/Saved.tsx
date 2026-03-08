@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ResumeCardSkeleton } from "@/components/ui/skeleton-shimmer";
 import { PageTransition, staggerContainer, fadeInUp } from "@/components/animations/PageTransition";
-import { 
-  FileText, 
-  Calendar, 
-  Download, 
-  Trash2, 
+import {
+  FileText,
+  Calendar,
+  Download,
+  Trash2,
   FolderOpen,
   Plus,
   ExternalLink
@@ -94,7 +94,7 @@ export default function Saved() {
       <PageTransition>
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
           {/* Header */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-between pt-4"
@@ -145,7 +145,7 @@ export default function Saved() {
               </Card>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               variants={staggerContainer}
               initial="initial"
               animate="animate"
@@ -161,7 +161,7 @@ export default function Saved() {
                   <Card className="bg-card/80 backdrop-blur-sm border-border hover:border-primary/30 transition-colors">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
-                        <div 
+                        <div
                           className="flex-1 cursor-pointer"
                           onClick={() => handleLoadResume(resume)}
                         >
@@ -178,12 +178,12 @@ export default function Saved() {
                             </p>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           {resume.pdf_url && (
-                            <motion.a 
-                              href={resume.pdf_url} 
-                              target="_blank" 
+                            <motion.a
+                              href={resume.pdf_url}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 rounded-lg hover:bg-muted transition-colors"
                               whileHover={{ scale: 1.1 }}
@@ -192,12 +192,12 @@ export default function Saved() {
                               <ExternalLink className="h-4 w-4 text-primary" />
                             </motion.a>
                           )}
-                          
+
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="icon"
                                   className="text-muted-foreground hover:text-destructive"
                                   disabled={deletingId === resume.id}
