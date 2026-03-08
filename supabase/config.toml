@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.admin-promo-codes]
 verify_jwt = false
+
+[functions.resume-chat]
+verify_jwt = false
