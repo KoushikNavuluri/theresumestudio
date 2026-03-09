@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { askPerplexity } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -107,10 +107,10 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 \\noindent
 \\textbf{URL Shortener - Python, Flask, SQLite}
 \\begin{itemize}[leftmargin=1em, itemsep=3pt, topsep=4pt, parsep=0pt]
-    \\item Developed a web-based URL shortening service using Python and Flask framework
-    \\item Implemented secure URL generation with collision detection and database storage
-    \\item Added analytics tracking to monitor click counts and user engagement
-    \\item Designed responsive web interface with user-friendly features
+    \\item Developed a web-based URL shortening service using Python and Flask framework, enabling users to create short, unique URLs that redirect to specific websites
+    \\item Implemented secure URL generation with collision detection and database storage using SQLite for efficient data management
+    \\item Added analytics tracking to monitor click counts and user engagement, providing valuable insights for URL performance
+    \\item Designed responsive web interface with user-friendly features including custom alias options and expiration date settings
 \\end{itemize}
 
 \\vspace{6pt}
@@ -118,8 +118,8 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 \\noindent
 \\textbf{Weather Forecasting Application - Python, APIs, Data Visualization}
 \\begin{itemize}[leftmargin=1em, itemsep=3pt, topsep=4pt, parsep=0pt]
-    \\item Built a comprehensive weather forecasting application that fetches real-time weather information
-    \\item Integrated multiple weather data sources to ensure accuracy and reliability
+    \\item Built a comprehensive weather forecasting application that fetches real-time weather information from cities worldwide using REST APIs
+    \\item Integrated multiple weather data sources to ensure accuracy and reliability of forecasts across different geographical locations
 \\end{itemize}
 
 \\vspace{12pt}
@@ -130,15 +130,15 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 \\hrule
 \\vspace{6pt}
 \\noindent
-\\textbf{Languages:} JavaScript, Flutter, Python\\\\[4pt]
-\\textbf{Technologies:} ReactJs, Redux, NextJS, Git, Jenkins, Docker, Kubernetes, Kafka, Chrome Dev Tools\\\\[4pt]
-\\textbf{Databases:} MongoDB, PostgreSQL, Redis, MySQL.\\\\[4pt]
-\\textbf{Coursework:} OOPs, OS, DBMS, Design Patterns, Microservices, SDLC.\\\\[4pt]
+\\textbf{Languages:} JavaScript, Flutter, Python \\newline \\vspace{4pt}
+\\textbf{Technologies:} ReactJs, Redux, NextJS, Git, Jenkins, Docker, Kubernetes, Kafka, Chrome Dev Tools \\newline \\vspace{4pt}
+\\textbf{Databases:} MongoDB, PostgreSQL, Redis, MySQL. \\newline \\vspace{4pt}
+\\textbf{Coursework:} OOPs, OS, DBMS, Design Patterns, Microservices, SDLC. \\newline \\vspace{4pt}
 \\textbf{Other Skills:} Agile development, workflow design, stakeholder management, global collaboration
 
 \\end{document}`;
 
-const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
+const MAX_JOB_DESC_LENGTH = 50000;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -155,22 +155,6 @@ serve(async (req) => {
       );
     }
 
-    if (job_description.length > MAX_JOB_DESC_LENGTH) {
-      console.log(`Job description too long: ${job_description.length} characters`);
-      return new Response(
-        JSON.stringify({ error: `Job description too long (max ${MAX_JOB_DESC_LENGTH} characters)` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY is not configured');
-      return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Get the user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -180,57 +164,17 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role for admin operations
     const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    
-    // Create client with user's token to get their info
     const supabaseClient = createClient(SUPABASE_URL!, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Get current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('User auth error:', userError);
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (!user) {
       return new Response(
         JSON.stringify({ error: 'Authentication failed' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user's profile to check credits
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('credits, bonus_credits, plan_credits_used, plan')
-      .eq('user_id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user profile' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Calculate available credits
-    const getPlanCredits = (plan: string) => {
-      switch (plan) {
-        case 'pro': return 100;
-        case 'basic': return 100;
-        default: return 10;
-      }
-    };
-
-    const planCredits = getPlanCredits(profile.plan);
-    const remainingPlanCredits = Math.max(0, planCredits - profile.plan_credits_used);
-    const totalAvailable = remainingPlanCredits + profile.bonus_credits;
-
-    if (totalAvailable < 1) {
-      return new Response(
-        JSON.stringify({ error: 'Insufficient credits. Please upgrade or add bonus credits.' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -244,109 +188,46 @@ serve(async (req) => {
 
     const resumeTemplate = template?.latex_code || BASE_RESUME_TEMPLATE;
 
-    const prompt = `MY RESUME LATEX CODE:
-
+    const prompt = `REVISE THIS LATEX RESUME BASED ON THE JOB DESCRIPTION.
+    
+MY CURRENT RESUME (LaTeX):
 ${resumeTemplate}
 
-JOB DETAILS: ${job_description}
+JOB DESCRIPTION/DETAILS:
+${job_description}
 
-TASK: Revise the provided LaTeX resume code based on the posted job description. Incorporate all relevant ATS keywords to maximize the ATS score and improve shortlisting potential. Rephrase only the Professional Summary, Experience Descriptions, Project Descriptions, and Technologies sections based on the job description with same length as original text. Ensure the final version fits on one page, no text should exceed to next page please. Return only the complete updated LaTeX code — no explanations or additional text. Start with \\documentclass and end with \\end{document}.`;
+GUIDELINES:
+1. Rephrase the Professional Summary to align with the core requirements of the job.
+2. Update Experience Descriptions and Project Descriptions bullet points using job-specific keywords.
+3. CRITICAL: For the "Technologies" section, select the most relevant skills from the job description that I possess. 
+4. MAINTAIN FORMATTING: Keep the exact LaTeX structure. For the Technologies section, use the format: \\textbf{Category:} Skill1, Skill2... \\newline \\vspace{4pt}
+   Wait! IMPORTANT: Do NOT use the \\[4pt] command as it causes errors. Use exactly: \\newline \\vspace{4pt} after each category.
+5. ATS OPTIMIZATION: Maximize keyword overlap.
+6. ONE PAGE LIMIT: Ensure the final output fits on one page.
+7. OUTPUT ONLY CODE: Provide ONLY the complete updated LaTeX code starting with \\documentclass and ending with \\end{document}. No explanations, no markdown code fences.`;
 
-    console.log('Calling Lovable AI Gateway for resume optimization...');
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert resume writer and ATS optimization specialist. You output only valid LaTeX code without any markdown formatting or explanations.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.error('Rate limit exceeded');
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        console.error('Payment required');
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add funds to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const data = await response.json();
-    let latexCode = data.choices?.[0]?.message?.content || '';
+    console.log('Calling Perplexity for resume optimization...');
+    const latexCodeRaw = await askPerplexity(prompt, false) as string;
 
     // Clean up the LaTeX code
-    latexCode = latexCode.trim();
-    
-    // Remove markdown code fences if present
+    let latexCode = latexCodeRaw.trim();
     latexCode = latexCode.replace(/^```(?:latex|tex)?\s*/i, '');
     latexCode = latexCode.replace(/\s*```$/i, '');
-    
-    // Ensure it starts with \documentclass
+
     const docclassIndex = latexCode.indexOf('\\documentclass');
     if (docclassIndex > 0) {
       latexCode = latexCode.substring(docclassIndex);
     }
-    
-    // Ensure it ends with \end{document}
+
     const endDocMatch = latexCode.match(/\\end\{document\}/i);
     if (endDocMatch) {
       latexCode = latexCode.substring(0, endDocMatch.index! + endDocMatch[0].length);
     }
 
-    // Deduct credits after successful generation
-    // First use plan credits, then bonus credits
-    let updateData: Record<string, number> = {};
-    
-    if (remainingPlanCredits >= 1) {
-      // Deduct from plan credits
-      updateData = { plan_credits_used: profile.plan_credits_used + 1 };
-    } else {
-      // Deduct from bonus credits
-      updateData = { bonus_credits: Math.max(0, profile.bonus_credits - 1) };
-    }
-
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update(updateData)
-      .eq('user_id', user.id);
-
-    if (updateError) {
-      console.error('Failed to deduct credits:', updateError);
-      // Continue anyway since the generation was successful
-    } else {
-      console.log('Credits deducted successfully for user:', user.id);
-    }
-
-    console.log('Resume optimization completed successfully');
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        latex_code: latexCode 
+      JSON.stringify({
+        success: true,
+        latex_code: latexCode
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -359,3 +240,4 @@ TASK: Revise the provided LaTeX resume code based on the posted job description.
     );
   }
 });
+

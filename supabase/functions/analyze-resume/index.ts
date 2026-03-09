@@ -1,13 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { askPerplexity } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const MAX_LATEX_LENGTH = 100000; // ~100KB limit
-const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
+const MAX_LATEX_LENGTH = 100000;
+const MAX_JOB_DESC_LENGTH = 50000;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,39 +21,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Both latex_code and job_description are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate input types
-    if (typeof latex_code !== 'string' || typeof job_description !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid input types' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate input lengths
-    if (latex_code.length > MAX_LATEX_LENGTH) {
-      console.log(`LaTeX code too long: ${latex_code.length} characters`);
-      return new Response(
-        JSON.stringify({ error: `LaTeX code too long (max ${MAX_LATEX_LENGTH} characters)` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (job_description.length > MAX_JOB_DESC_LENGTH) {
-      console.log(`Job description too long: ${job_description.length} characters`);
-      return new Response(
-        JSON.stringify({ error: `Job description too long (max ${MAX_JOB_DESC_LENGTH} characters)` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY is not configured');
-      return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -74,61 +41,19 @@ Analyze and return a JSON object with:
 
 Return ONLY valid JSON, no markdown or explanations.`;
 
-    console.log('Calling Lovable AI Gateway for resume analysis...');
+    console.log('Calling Perplexity for resume analysis...');
+    const content = await askPerplexity(prompt, false) as string;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert ATS (Applicant Tracking System) analyzer. You analyze resumes and return structured JSON data. Always return valid JSON only.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add funds to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || '';
-    
     // Clean up JSON
-    content = content.trim();
-    content = content.replace(/^```(?:json)?\s*/i, '');
-    content = content.replace(/\s*```$/i, '');
+    let jsonContent = content.trim();
+    jsonContent = jsonContent.replace(/^```(?:json)?\s*/i, '');
+    jsonContent = jsonContent.replace(/\s*```$/i, '');
 
     let analysis;
     try {
-      analysis = JSON.parse(content);
+      analysis = JSON.parse(jsonContent);
     } catch (e) {
-      console.error('Failed to parse AI response:', content);
-      // Return default values if parsing fails
+      console.error('Failed to parse Perplexity response:', content);
       analysis = {
         atsScore: 75,
         keywordMatch: 70,
@@ -138,11 +63,9 @@ Return ONLY valid JSON, no markdown or explanations.`;
       };
     }
 
-    console.log('Resume analysis completed:', analysis);
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         ...analysis
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -156,3 +79,4 @@ Return ONLY valid JSON, no markdown or explanations.`;
     );
   }
 });
+

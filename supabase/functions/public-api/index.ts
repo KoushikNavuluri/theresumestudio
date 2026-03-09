@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
+import { askPerplexity } from "../_shared/perplexity.ts";
+
 const encodeHex = (data: Uint8Array): string => new TextDecoder().decode(encode(data));
 
 const corsHeaders = {
@@ -10,7 +12,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -101,23 +102,23 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 
 const MAX_JOB_DESC_LENGTH = 50000;
 
-// Rate limiting with in-memory cache (simple approach for edge functions)
+// Rate limiting with in-memory cache
 const rateLimitCache = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(tokenId: string, limitPerMinute: number): boolean {
   const now = Date.now();
   const windowMs = 60000; // 1 minute
-  
+
   const entry = rateLimitCache.get(tokenId);
   if (!entry || entry.resetAt < now) {
     rateLimitCache.set(tokenId, { count: 1, resetAt: now + windowMs });
     return true;
   }
-  
+
   if (entry.count >= limitPerMinute) {
     return false;
   }
-  
+
   entry.count++;
   return true;
 }
@@ -131,15 +132,15 @@ async function hashToken(token: string): Promise<string> {
 
 async function validateApiKey(supabase: any, apiKey: string) {
   const tokenHash = await hashToken(apiKey);
-  
+
   const { data, error } = await supabase.rpc('validate_api_token', {
     p_token_hash: tokenHash
   });
-  
+
   if (error || !data || data.length === 0) {
     return null;
   }
-  
+
   return data[0];
 }
 
@@ -204,7 +205,7 @@ async function getUserCredits(supabase: any, userId: string) {
 
 async function deductCredits(supabase: any, userId: string, profile: any, remainingPlanCredits: number) {
   let updateData: Record<string, number> = {};
-  
+
   if (remainingPlanCredits >= 1) {
     updateData = { plan_credits_used: profile.plan_credits_used + 1 };
   } else {
@@ -239,9 +240,8 @@ async function handleOptimize(
     return { error: 'Insufficient credits', status: 402 };
   }
 
-  // Get user's default template or use provided/base
   let resumeTemplate = template || BASE_RESUME_TEMPLATE;
-  
+
   if (!template) {
     const { data: userTemplate } = await supabase
       .from('templates')
@@ -249,52 +249,39 @@ async function handleOptimize(
       .eq('user_id', userId)
       .eq('is_default', true)
       .maybeSingle();
-    
+
     if (userTemplate?.latex_code) {
       resumeTemplate = userTemplate.latex_code;
     }
   }
 
-  const prompt = `MY RESUME LATEX CODE:
-
+  const prompt = `REVISE THIS LATEX RESUME BASED ON THE JOB DESCRIPTION.
+    
+MY CURRENT RESUME (LaTeX):
 ${resumeTemplate}
 
-JOB DETAILS: ${job_description}
+JOB DESCRIPTION/DETAILS:
+${job_description}
 
-TASK: Revise the provided LaTeX resume code based on the posted job description. Incorporate all relevant ATS keywords to maximize the ATS score and improve shortlisting potential. Rephrase only the Professional Summary, Experience Descriptions, Project Descriptions, and Technologies sections based on the job description with same length as original text. Ensure the final version fits on one page. Return only the complete updated LaTeX code — no explanations or additional text. Start with \\documentclass and end with \\end{document}.`;
+GUIDELINES:
+1. Rephrase the Professional Summary to align with the core requirements of the job.
+2. Update Experience Descriptions and Project Descriptions bullet points to highlight relevant achievements using job-specific keywords.
+3. CRITICAL: For the "Technologies" section, select and list the most relevant Languages, Technologies, and Databases from the job description that I possess. 
+4. MAINTAIN FORMATTING: Keep the exact LaTeX structure. For Technologies, use the format: \\textbf{Category:} Skill1, Skill2, Skill3...\\\\[4pt]
+5. ATS OPTIMIZATION: Maximize keyword overlap while maintaining professional phrasing.
+6. ONE PAGE LIMIT: Ensure the final LaTeX code results in a single-page document.
+7. OUTPUT ONLY CODE: Provide ONLY the complete, compilable updated LaTeX code starting with \\documentclass and ending with \\end{document}. No explanations, no markdown code fences.`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: 'You are an expert resume writer and ATS optimization specialist. You output only valid LaTeX code without any markdown formatting or explanations.' },
-        { role: 'user', content: prompt }
-      ],
-    }),
-  });
+  console.log('Calling Perplexity for resume optimization in Public API...');
+  const latexCodeRaw = await askPerplexity(prompt, false) as string;
 
-  if (!response.ok) {
-    if (response.status === 429) return { error: 'Rate limit exceeded', status: 429 };
-    if (response.status === 402) return { error: 'AI credits exhausted', status: 402 };
-    return { error: 'AI service error', status: 500 };
-  }
-
-  const data = await response.json();
-  let latexCode = data.choices?.[0]?.message?.content || '';
-
-  // Clean up LaTeX
-  latexCode = latexCode.trim();
+  let latexCode = latexCodeRaw.trim();
   latexCode = latexCode.replace(/^```(?:latex|tex)?\s*/i, '');
   latexCode = latexCode.replace(/\s*```$/i, '');
-  
+
   const docclassIndex = latexCode.indexOf('\\documentclass');
   if (docclassIndex > 0) latexCode = latexCode.substring(docclassIndex);
-  
+
   const endDocMatch = latexCode.match(/\\end\{document\}/i);
   if (endDocMatch) latexCode = latexCode.substring(0, endDocMatch.index! + endDocMatch[0].length);
 
@@ -312,8 +299,8 @@ TASK: Revise the provided LaTeX resume code based on the posted job description.
 }
 
 async function handleAnalyze(
-  supabase: any,
-  userId: string,
+  _supabase: any,
+  _userId: string,
   body: { latex_code: string; job_description: string }
 ) {
   const { latex_code, job_description } = body;
@@ -341,33 +328,13 @@ Respond with a JSON object containing:
 
 Return ONLY the JSON object, no other text.`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: 'You are an ATS analysis expert. Return only valid JSON.' },
-        { role: 'user', content: prompt }
-      ],
-    }),
-  });
+  console.log('Calling Perplexity for resume analysis in Public API...');
+  const content = await askPerplexity(prompt, false) as string;
 
-  if (!response.ok) {
-    return { error: 'AI service error', status: 500 };
-  }
+  let jsonContent = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
 
-  const data = await response.json();
-  let content = data.choices?.[0]?.message?.content || '{}';
-  
-  // Clean up JSON
-  content = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-  
   try {
-    const analysis = JSON.parse(content);
+    const analysis = JSON.parse(jsonContent);
     return {
       data: {
         success: true,
@@ -391,7 +358,6 @@ async function handleConvert(
     return { error: 'latex_code is required', status: 400 };
   }
 
-  // Call external LaTeX to PDF service
   try {
     const response = await fetch('https://latexonline.cc/compile', {
       method: 'POST',
@@ -400,7 +366,6 @@ async function handleConvert(
     });
 
     if (!response.ok) {
-      // Fallback: return LaTeX code with instructions
       return {
         data: {
           success: true,
@@ -496,7 +461,7 @@ async function handleGetResume(supabase: any, userId: string, resumeId: string) 
 
 serve(async (req) => {
   const startTime = Date.now();
-  
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -506,9 +471,8 @@ serve(async (req) => {
   const path = url.pathname.replace('/public-api', '').replace(/^\/+/, '');
   const method = req.method;
 
-  // Extract API key from header
   const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
-  
+
   if (!apiKey) {
     return new Response(
       JSON.stringify({
@@ -519,9 +483,8 @@ serve(async (req) => {
     );
   }
 
-  // Validate API key
   const tokenData = await validateApiKey(supabase, apiKey);
-  
+
   if (!tokenData) {
     return new Response(
       JSON.stringify({ error: 'Invalid or expired API key' }),
@@ -531,11 +494,10 @@ serve(async (req) => {
 
   const { user_id: userId, token_id: tokenId, permissions, rate_limit_per_minute, rate_limit_per_day, requests_today } = tokenData;
 
-  // Check daily rate limit
   if (requests_today > rate_limit_per_day) {
     await logUsage(supabase, tokenId, userId, path, method, 429, { errorMessage: 'Daily rate limit exceeded' });
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Daily rate limit exceeded',
         limit: rate_limit_per_day,
         reset: 'midnight UTC'
@@ -544,11 +506,10 @@ serve(async (req) => {
     );
   }
 
-  // Check per-minute rate limit
   if (!checkRateLimit(tokenId, rate_limit_per_minute)) {
     await logUsage(supabase, tokenId, userId, path, method, 429, { errorMessage: 'Rate limit exceeded' });
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Rate limit exceeded',
         limit: rate_limit_per_minute,
         window: '1 minute'
@@ -562,7 +523,6 @@ serve(async (req) => {
   const userAgent = req.headers.get('user-agent');
 
   try {
-    // Route handling
     if (method === 'POST' && path === 'optimize') {
       if (!permissions.includes('optimize')) {
         result = { error: 'Permission denied for optimize endpoint', status: 403 };
@@ -606,7 +566,6 @@ serve(async (req) => {
   const responseBody = result.error ? { error: result.error } : result.data;
   const responseStr = JSON.stringify(responseBody);
 
-  // Log usage
   await logUsage(supabase, tokenId, userId, path, method, result.status, {
     latencyMs,
     responseSize: responseStr.length,
@@ -620,3 +579,4 @@ serve(async (req) => {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 });
+
