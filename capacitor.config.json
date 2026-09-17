@@ -1,0 +1,7 @@
+{
+  "appId": "com.koushiknavuluri.resumestudio.test",
+  "appName": "ResumeStudio Test",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}
