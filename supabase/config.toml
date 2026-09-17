@@ -1,4 +1,4 @@
-project_id = "bubkiuqriimtvzljwmqx"
+project_id = "aeapocnycabxfckllbsw"
 
 [functions.analyze-resume]
 verify_jwt = false
@@ -19,4 +19,8 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.resume-chat]
+verify_jwt = false
+
+# This endpoint authenticates application API keys in its handler.
+[functions.public-api]
 verify_jwt = false
