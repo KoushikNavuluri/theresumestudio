@@ -32,34 +32,23 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_FsFNX2KQhE8GsEwjVUwrJA_W0cIFMPb
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
-
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - name: Install locked web dependencies
         run: npm ci --legacy-peer-deps
-
       - name: Install pinned packaging dependencies in CI checkout
         run: npm install --save-exact --package-lock=false --legacy-peer-deps @capacitor/core@7.0.1 @capacitor/android@7.0.1 @capacitor/cli@7.0.1
-
       - name: Build bundled Android web assets
         run: npm run build -- --config vite.android.config.ts --mode android
-
       - name: Check target backend and bundled credentials
         shell: bash
         run: |
@@ -83,18 +72,15 @@ jobs:
           }
           console.log('rstudio configured; no Google/Supabase secret-key patterns detected.');
           NODE
-
       - name: Generate native Android project
         run: |
           npx --no-install cap add android
           npx --no-install cap sync android
-
       - name: Compile debug-signed APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
-
       - name: Verify and package APK
         run: |
           mkdir -p apk-output
@@ -102,7 +88,6 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose apk-output/ResumeStudio-test.apk
           cd apk-output
           sha256sum ResumeStudio-test.apk > SHA256SUMS.txt
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -110,10 +95,11 @@ jobs:
           path: apk-output/
           if-no-files-found: error
           retention-days: 14
-
       - name: Installation summary
         run: |
           echo '## ResumeStudio test APK' >> "$GITHUB_STEP_SUMMARY"
           echo 'Download **ResumeStudio-test-apk** from Artifacts, unzip it, and install **ResumeStudio-test.apk** on Android.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Internet is required for Gemini/Supabase. This is a debug-signed test build, not a Play Store release.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Future builds may require uninstalling the old test APK because the CI debug certificate is ephemeral. See ANDROID_TEST.md for PDF and auth limitations.' >> "$GITHUB_STEP_SUMMARY"
+
+
