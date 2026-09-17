@@ -3,10 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
-
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -137,225 +136,57 @@ Full-stack developer with expertise in Java, Javascript, Python, and database ma
 \\textbf{Other Skills:} Agile development, workflow design, stakeholder management, global collaboration
 
 \\end{document}`;
-
-const MAX_JOB_DESC_LENGTH = 50000; // ~50KB limit
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   try {
     const { job_description } = await req.json();
-
-    if (!job_description || typeof job_description !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Job description is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (job_description.length > MAX_JOB_DESC_LENGTH) {
-      console.log(`Job description too long: ${job_description.length} characters`);
-      return new Response(
-        JSON.stringify({ error: `Job description too long (max ${MAX_JOB_DESC_LENGTH} characters)` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY is not configured');
-      return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get the user from auth header
+    if (!job_description || typeof job_description !== 'string') return json({ error: 'Job description is required' }, 400);
+    if (job_description.length > 50000) return json({ error: 'Job description too long (max 50000 characters)' }, 400);
+    if (!GEMINI_API_KEY) return json({ error: 'AI service not configured' }, 503);
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create Supabase client with service role for admin operations
-    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    
-    // Create client with user's token to get their info
-    const supabaseClient = createClient(SUPABASE_URL!, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Get current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
-    if (userError || !user) {
-      console.error('User auth error:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Authentication failed' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user's profile to check credits
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('credits, bonus_credits, plan_credits_used, plan')
-      .eq('user_id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user profile' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Calculate available credits
-    const getPlanCredits = (plan: string) => {
-      switch (plan) {
-        case 'pro': return 100;
-        case 'basic': return 100;
-        default: return 10;
-      }
-    };
-
-    const planCredits = getPlanCredits(profile.plan);
+    if (!authHeader) return json({ error: 'Authentication required' }, 401);
+    const admin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const auth = createClient(SUPABASE_URL!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user }, error: userError } = await auth.auth.getUser();
+    if (userError || !user) return json({ error: 'Authentication failed' }, 401);
+    const { data: profile, error: profileError } = await admin.from('profiles').select('credits, bonus_credits, plan_credits_used, plan').eq('user_id', user.id).single();
+    if (profileError || !profile) return json({ error: 'Failed to fetch user profile' }, 500);
+    const planCredits = profile.plan === 'pro' || profile.plan === 'basic' ? 100 : 10;
     const remainingPlanCredits = Math.max(0, planCredits - profile.plan_credits_used);
-    const totalAvailable = remainingPlanCredits + profile.bonus_credits;
-
-    if (totalAvailable < 1) {
-      return new Response(
-        JSON.stringify({ error: 'Insufficient credits. Please upgrade or add bonus credits.' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user's default template if available
-    const { data: template } = await supabaseAdmin
-      .from('templates')
-      .select('latex_code')
-      .eq('user_id', user.id)
-      .eq('is_default', true)
-      .maybeSingle();
-
-    const resumeTemplate = template?.latex_code || BASE_RESUME_TEMPLATE;
-
+    if (remainingPlanCredits + profile.bonus_credits < 1) return json({ error: 'Insufficient credits. Please upgrade or add bonus credits.' }, 402);
+    const { data: template } = await admin.from('templates').select('latex_code').eq('user_id', user.id).eq('is_default', true).maybeSingle();
     const prompt = `MY RESUME LATEX CODE:
 
-${resumeTemplate}
+${template?.latex_code || BASE_RESUME_TEMPLATE}
 
 JOB DETAILS: ${job_description}
 
-TASK: Revise the provided LaTeX resume code based on the posted job description. Incorporate all relevant ATS keywords to maximize the ATS score and improve shortlisting potential. Rephrase only the Professional Summary, Experience Descriptions, Project Descriptions, and Technologies sections based on the job description with same length as original text. Ensure the final version fits on one page, no text should exceed to next page please. Return only the complete updated LaTeX code — no explanations or additional text. Start with \\documentclass and end with \\end{document}.`;
-
-    console.log('Calling Lovable AI Gateway for resume optimization...');
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+TASK: Revise the provided LaTeX resume code based on the posted job description. Incorporate all relevant ATS keywords to maximize the ATS score and improve shortlisting potential. Rephrase only the Professional Summary, Experience Descriptions, Project Descriptions, and Technologies sections based on the job description with same length as original text. Ensure the final version fits on one page, no text should exceed to next page please. Return only the complete updated LaTeX code, no explanations or additional text. Start with \\documentclass and end with \\end{document}.`;
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert resume writer and ATS optimization specialist. You output only valid LaTeX code without any markdown formatting or explanations.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-      }),
+      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'gemini-3.5-flash-lite', messages: [
+        { role: 'system', content: 'You are an expert resume writer and ATS optimization specialist. You output only valid LaTeX code without any markdown formatting or explanations.' },
+        { role: 'user', content: prompt },
+      ] }),
     });
-
     if (!response.ok) {
-      if (response.status === 429) {
-        console.error('Rate limit exceeded');
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        console.error('Payment required');
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add funds to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error('Gemini optimization failed:', response.status);
+      return json({ error: response.status === 429 ? 'Gemini rate limit or quota exceeded. Please try again later.' : 'AI service error' }, response.status === 429 ? 429 : 502);
     }
-
     const data = await response.json();
-    let latexCode = data.choices?.[0]?.message?.content || '';
-
-    // Clean up the LaTeX code
-    latexCode = latexCode.trim();
-    
-    // Remove markdown code fences if present
-    latexCode = latexCode.replace(/^```(?:latex|tex)?\s*/i, '');
-    latexCode = latexCode.replace(/\s*```$/i, '');
-    
-    // Ensure it starts with \documentclass
-    const docclassIndex = latexCode.indexOf('\\documentclass');
-    if (docclassIndex > 0) {
-      latexCode = latexCode.substring(docclassIndex);
-    }
-    
-    // Ensure it ends with \end{document}
-    const endDocMatch = latexCode.match(/\\end\{document\}/i);
-    if (endDocMatch) {
-      latexCode = latexCode.substring(0, endDocMatch.index! + endDocMatch[0].length);
-    }
-
-    // Deduct credits after successful generation
-    // First use plan credits, then bonus credits
-    let updateData: Record<string, number> = {};
-    
-    if (remainingPlanCredits >= 1) {
-      // Deduct from plan credits
-      updateData = { plan_credits_used: profile.plan_credits_used + 1 };
-    } else {
-      // Deduct from bonus credits
-      updateData = { bonus_credits: Math.max(0, profile.bonus_credits - 1) };
-    }
-
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update(updateData)
-      .eq('user_id', user.id);
-
-    if (updateError) {
-      console.error('Failed to deduct credits:', updateError);
-      // Continue anyway since the generation was successful
-    } else {
-      console.log('Credits deducted successfully for user:', user.id);
-    }
-
-    console.log('Resume optimization completed successfully');
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        latex_code: latexCode 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('Error in optimize-resume function:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    let latexCode = (data.choices?.[0]?.message?.content || '').trim().replace(/^```(?:latex|tex)?\s*/i, '').replace(/\s*```$/i, '');
+    const start = latexCode.indexOf('\\documentclass');
+    const end = latexCode.match(/\\end\{document\}/i);
+    if (start < 0 || !end || end.index! < start) return json({ error: 'Incomplete LaTeX response. Please try again.' }, 502);
+    latexCode = latexCode.substring(start, end.index! + end[0].length);
+    const updateData = remainingPlanCredits >= 1 ? { plan_credits_used: profile.plan_credits_used + 1 } : { bonus_credits: Math.max(0, profile.bonus_credits - 1) };
+    const { error: updateError } = await admin.from('profiles').update(updateData).eq('user_id', user.id);
+    if (updateError) console.error('Failed to deduct credits:', updateError.code);
+    return json({ success: true, latex_code: latexCode });
+  } catch {
+    return json({ error: 'Unable to optimize the resume. Please try again.' }, 500);
   }
 });
